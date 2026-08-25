@@ -1,0 +1,4 @@
+# Only fetch_google_trends.py needs third-party packages.
+# The Census and Wikipedia scripts use the Python standard library only.
+pytrends>=4.9.2
+pandas>=2.0
