@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<title>Turf</title>
+<meta name="description" content="Turf — a top-down browser crime sim. Climb from broke hustler to kingpin across Empire mode and Street mode." />
+<link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+<div id="app">
+  <!-- Top bar -->
+  <div class="topbar">
+    <div class="brand">TU<span>RF</span></div>
+    <div class="spacer"></div>
+    <div class="modebtns">
+      <button class="modebtn" id="to-empire">Empire</button>
+      <button class="modebtn" id="to-street">Street</button>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div class="main">
+
+    <!-- Empire mode -->
+    <div id="empire">
+      <div class="emp-header">
+        <div class="toprow">
+          <div>
+            <div class="who" id="hd-name">—</div>
+            <div class="rank" id="hd-rank">—</div>
+          </div>
+          <div class="xpwrap">
+            <div class="small muted">XP</div>
+            <div class="meter"><div class="meter-fill" id="hd-xpbar" style="width:0"></div></div>
+          </div>
+          <div class="heatwrap heat">
+            <div class="small muted">Heat <span id="hd-heat">0%</span></div>
+            <div class="meter"><div class="meter-fill" id="hd-heatbar" style="width:0"></div></div>
+          </div>
+        </div>
+        <div class="bars">
+          <div class="stat">Cash <b id="hd-cash">—</b></div>
+          <div class="stat">⚡ Energy <b id="hd-energy">—</b></div>
+          <div class="stat">💪 Stamina <b id="hd-stamina">—</b></div>
+          <div class="stat">❤️ Health <b id="hd-health">—</b></div>
+          <div class="stat">Respect <b id="hd-respect">—</b></div>
+          <div class="stat" id="hd-clock">—</div>
+        </div>
+        <div class="banner-ad" id="hd-banner">Ad</div>
+      </div>
+      <div class="tabs" id="emp-tabs"></div>
+      <div class="emp-body" id="emp-body"></div>
+    </div>
+
+    <!-- Street mode -->
+    <div id="street" style="display:none">
+      <div class="canvas-wrap"><canvas id="game-canvas"></canvas></div>
+      <div class="street-hud">
+        <div class="hud-tl">
+          <div class="hud-chip">Cash <span id="sh-cash">—</span></div>
+          <div class="hpbar-wrap"><div class="hpbar" id="sh-hpbar"></div></div>
+        </div>
+        <div class="hud-tr">
+          <div class="hud-chip hud-stars" id="sh-stars">☆☆☆☆☆</div>
+          <div class="hud-chip" id="sh-clock" style="margin-top:6px">—</div>
+        </div>
+        <div class="mission-banner" id="sh-mission" style="display:none"></div>
+        <canvas id="minimap" width="150" height="128"></canvas>
+        <div class="hint">WASD / arrows move · <b>E</b> enter or steal a car · <b>Space</b> attack · drive to green/orange spots to heal, respray or sell</div>
+      </div>
+      <div class="touch-controls">
+        <div id="joy"><div id="joy-knob"></div></div>
+        <div class="street-btns">
+          <button class="cbtn" id="btn-enter">Car</button>
+          <button class="cbtn" id="btn-action">Hit</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Splash -->
+<div id="splash">
+  <div class="logo">TU<span>RF</span></div>
+  <div class="tag">Loading the city…</div>
+</div>
+
+<div id="overlays"></div>
+<div id="toasts"></div>
+
+<script src="js/data.js"></script>
+<script src="js/game.js"></script>
+<script src="js/street.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
