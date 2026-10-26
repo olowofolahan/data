@@ -189,6 +189,61 @@ TURF.ADS = {
   ]
 };
 
+/* -------------------------------------------------------------------------- */
+/* Weapons. Melee is always available; guns unlock by rank and need ammo.      */
+/*   cost/ammoCost are base prices — multiplied by the country price scale.     */
+/*   Cartoon violence only: no blood or gore (see content rules in the doc).    */
+/* -------------------------------------------------------------------------- */
+TURF.WEAPONS = [
+  { id: "fist",    name: "Fists",        type: "melee", damage: 25, range: 34,  cooldown: 20, minRank: 1, cost: 0,    heat: 1 },
+  { id: "bat",     name: "Baseball bat", type: "melee", damage: 42, range: 40,  cooldown: 24, minRank: 1, cost: 300,  heat: 1 },
+  { id: "machete", name: "Machete",      type: "melee", damage: 58, range: 44,  cooldown: 28, minRank: 2, cost: 900,  heat: 2 },
+  { id: "pistol",  name: "Pistol",       type: "gun",   damage: 45, range: 260, cooldown: 16, minRank: 3, cost: 2600, heat: 4, clip: 12, ammoCost: 200, spread: 0.06, pellets: 1 },
+  { id: "smg",     name: "SMG",          type: "gun",   damage: 32, range: 240, cooldown: 6,  minRank: 4, cost: 7200, heat: 6, clip: 30, ammoCost: 500, spread: 0.14, pellets: 1 },
+  { id: "shotgun", name: "Shotgun",      type: "gun",   damage: 26, range: 150, cooldown: 34, minRank: 4, cost: 9000, heat: 7, clip: 6,  ammoCost: 400, spread: 0.42, pellets: 6 }
+];
+TURF.weaponById = function (id) { return TURF.WEAPONS.filter(function (w) { return w.id === id; })[0] || TURF.WEAPONS[0]; };
+
+/* -------------------------------------------------------------------------- */
+/* The Pastor & the born-again converts.                                       */
+/*   A pastor roams Street mode preaching; now and then a convert walks up to   */
+/*   the boss to say they're born again and quote Scripture (KJV, public        */
+/*   domain). Light, non-preachy fun — the boss can bless them or wave them off.*/
+/* -------------------------------------------------------------------------- */
+TURF.PASTOR_LINES = [
+  "Repent, for the kingdom is near!",
+  "Jesus loves you, my friend!",
+  "The wages of sin is death!",
+  "Come as you are!",
+  "There is still hope for you!",
+  "Turn from your ways today!",
+  "Grace is free — take it!"
+];
+TURF.CONVERT_OPENERS = [
+  "Boss, I can't run with the crew no more — I'm born again!",
+  "I found the Lord, boss. I'm a new creation.",
+  "No more street life for me, boss. I've been saved.",
+  "Boss, I gave my life to Christ. I had to tell you.",
+  "I'm done with the old ways, boss. Jesus got me now."
+];
+TURF.SCRIPTURES = [
+  { ref: "John 3:16", text: "For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life." },
+  { ref: "Romans 3:23", text: "For all have sinned, and come short of the glory of God." },
+  { ref: "Romans 6:23", text: "For the wages of sin is death; but the gift of God is eternal life through Jesus Christ our Lord." },
+  { ref: "Romans 10:9", text: "That if thou shalt confess with thy mouth the Lord Jesus, and shalt believe in thine heart that God hath raised him from the dead, thou shalt be saved." },
+  { ref: "Ephesians 2:8-9", text: "For by grace are ye saved through faith; and that not of yourselves: it is the gift of God: not of works, lest any man should boast." },
+  { ref: "2 Corinthians 5:17", text: "Therefore if any man be in Christ, he is a new creature: old things are passed away; behold, all things are become new." },
+  { ref: "Isaiah 1:18", text: "Though your sins be as scarlet, they shall be as white as snow." },
+  { ref: "Mark 8:36", text: "For what shall it profit a man, if he shall gain the whole world, and lose his own soul?" },
+  { ref: "Acts 16:31", text: "Believe on the Lord Jesus Christ, and thou shalt be saved." },
+  { ref: "1 John 1:9", text: "If we confess our sins, he is faithful and just to forgive us our sins." },
+  { ref: "Matthew 11:28", text: "Come unto me, all ye that labour and are heavy laden, and I will give you rest." },
+  { ref: "Luke 15:7", text: "Joy shall be in heaven over one sinner that repenteth." },
+  { ref: "Romans 5:8", text: "But God commendeth his love toward us, in that, while we were yet sinners, Christ died for us." },
+  { ref: "Proverbs 3:5-6", text: "Trust in the Lord with all thine heart; and lean not unto thine own understanding." },
+  { ref: "Psalm 23:1", text: "The Lord is my shepherd; I shall not want." }
+];
+
 /* Street missions (linked to Empire jobs via streetMissionId). */
 TURF.MISSIONS = {
   m_cartheft:  { kind: "cartheft",  label: "Boost a car and reach the chop shop" },

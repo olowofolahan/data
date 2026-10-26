@@ -70,6 +70,8 @@ T.newGame = function (country, name, look) {
     properties: [],
     districts: districts,
     inventory: { items: [], flyers: [] },
+    weapons: { fist: true }, ammo: {}, equipped: "fist",
+    converts: 0,
     flyersToday: 0, lastFlyerDay: 0,
     premium: false,
     gameMinutes: 8 * 60,          // start at 08:00 on day 0
@@ -98,8 +100,18 @@ T.load = function () {
     var raw = localStorage.getItem(SAVE_KEY);
     if (!raw) return false;
     T.state = JSON.parse(raw);
-    return !!(T.state && T.state.country && T.COUNTRY_PACKS[T.state.country]);
+    if (!(T.state && T.state.country && T.COUNTRY_PACKS[T.state.country])) return false;
+    T.ensureDefaults();
+    return true;
   } catch (e) { return false; }
+};
+/* Backfill fields added after a save was first written (forward-compat). */
+T.ensureDefaults = function () {
+  var s = T.state; if (!s) return;
+  if (!s.weapons) s.weapons = { fist: true };
+  if (!s.ammo) s.ammo = {};
+  if (!s.equipped || !s.weapons[s.equipped]) s.equipped = "fist";
+  if (s.converts == null) s.converts = 0;
 };
 T.exportCode = function () {
   try { return btoa(unescape(encodeURIComponent(JSON.stringify(T.state)))); }
@@ -432,7 +444,8 @@ T.empire.render = function () {
   var tabs = $("#emp-tabs");
   tabs.innerHTML = "";
   var defs = [["jobs", "Jobs"], ["crew", "Crew"], ["properties", "Properties"],
-              ["districts", "Districts"], ["fight", "Fight"], ["inventory", "Inventory"], ["profile", "Profile"]];
+              ["districts", "Districts"], ["fight", "Fight"], ["arsenal", "Arsenal"],
+              ["inventory", "Inventory"], ["profile", "Profile"]];
   defs.forEach(function (d) {
     var b = el("button", "tab" + (T.empire.tab === d[0] ? " tab--on" : ""), d[1]);
     b.onclick = function () { T.empire.tab = d[0]; T.empire.render(); };
@@ -441,7 +454,7 @@ T.empire.render = function () {
   var body = $("#emp-body");
   body.innerHTML = "";
   ({ jobs: T.empire.tabJobs, crew: T.empire.tabCrew, properties: T.empire.tabProps,
-     districts: T.empire.tabDistricts, fight: T.empire.tabFight,
+     districts: T.empire.tabDistricts, fight: T.empire.tabFight, arsenal: T.empire.tabArsenal,
      inventory: T.empire.tabInventory, profile: T.empire.tabProfile })[T.empire.tab](body);
 };
 
@@ -691,6 +704,76 @@ T.empire.tabFight = function (body) {
     list.appendChild(card);
   });
   body.appendChild(list);
+};
+
+/* Shared weapon helpers (used by the Arsenal tab and the street gun shop). */
+T.buyWeapon = function (w) {
+  var s = T.state, cost = w.cost * T.pack().priceScale;
+  if (s.weapons[w.id]) return false;
+  var rankIdx = T.RANKS.indexOf(T.rankForLevel(s.player.level)) + 1;
+  if (rankIdx < w.minRank) { T.toast("Needs rank " + w.minRank, "warn"); return false; }
+  if (s.player.cash < cost) { T.toast("Can't afford it", "warn"); return false; }
+  s.player.cash -= cost; s.weapons[w.id] = true;
+  if (w.type === "gun") s.ammo[w.id] = (s.ammo[w.id] || 0) + w.clip; // a starter clip
+  T.toast("Bought " + w.name, "good"); T.save(); return true;
+};
+T.buyAmmo = function (w) {
+  var s = T.state, cost = w.ammoCost * T.pack().priceScale;
+  if (w.type !== "gun") return false;
+  if (!s.weapons[w.id]) { T.toast("Buy the " + w.name + " first", "warn"); return false; }
+  if (s.player.cash < cost) { T.toast("Can't afford ammo", "warn"); return false; }
+  s.player.cash -= cost; s.ammo[w.id] = (s.ammo[w.id] || 0) + w.clip;
+  T.toast("+" + w.clip + " rounds for the " + w.name, "good"); T.save(); return true;
+};
+T.equipWeapon = function (id) {
+  if (!T.state.weapons[id]) return false;
+  T.state.equipped = id; T.toast("Equipped " + T.weaponById(id).name, "good"); T.save(); return true;
+};
+/* Build the card list for weapons — reused by Empire tab and the street shop. */
+T.weaponCards = function (host, onChange) {
+  var s = T.state, rankIdx = T.RANKS.indexOf(T.rankForLevel(s.player.level)) + 1;
+  var grid = el("div", "cards");
+  T.WEAPONS.forEach(function (w) {
+    var owned = !!s.weapons[w.id];
+    var card = el("div", "card" + (s.equipped === w.id ? " card--hi" : ""));
+    var stats = w.type === "gun"
+      ? ("DMG " + w.damage + (w.pellets > 1 ? "×" + w.pellets : "") + " · range " + w.range + " · clip " + w.clip)
+      : ("DMG " + w.damage + " · range " + w.range + " · melee");
+    card.innerHTML = "<h4>" + w.name + (w.type === "gun" ? " 🔫" : " 🥊") + "</h4>" +
+      "<div class='muted small'>" + stats + " · +Heat " + w.heat + "</div>" +
+      (owned && w.type === "gun" ? "<div class='small'>Ammo: <strong>" + (s.ammo[w.id] || 0) + "</strong></div>" : "");
+    var row = el("div", "row");
+    if (!owned) {
+      var buy = el("button", "btn", w.cost ? "Buy " + T.money(w.cost * T.pack().priceScale) : "Owned");
+      buy.disabled = !!w.cost === false || rankIdx < w.minRank || s.player.cash < w.cost * T.pack().priceScale;
+      if (w.cost === 0) { buy.disabled = true; buy.textContent = "Default"; }
+      if (rankIdx < w.minRank) buy.title = "Rank " + w.minRank;
+      buy.onclick = function () { if (T.buyWeapon(w)) onChange(); };
+      row.appendChild(buy);
+    } else {
+      var eq = el("button", "btn" + (s.equipped === w.id ? " btn--ghost" : ""), s.equipped === w.id ? "Equipped" : "Equip");
+      eq.disabled = s.equipped === w.id;
+      eq.onclick = function () { if (T.equipWeapon(w.id)) onChange(); };
+      row.appendChild(eq);
+      if (w.type === "gun") {
+        var ammo = el("button", "btn btn--ghost", "Ammo " + T.money(w.ammoCost * T.pack().priceScale));
+        ammo.disabled = s.player.cash < w.ammoCost * T.pack().priceScale;
+        ammo.onclick = function () { if (T.buyAmmo(w)) onChange(); };
+        row.appendChild(ammo);
+      }
+    }
+    card.appendChild(row);
+    if (!owned && rankIdx < w.minRank) card.classList.add("card--locked");
+    grid.appendChild(card);
+  });
+  host.appendChild(grid);
+};
+
+T.empire.tabArsenal = function (body) {
+  body.appendChild(el("p", "muted", "Your arsenal. Melee is always ready; guns unlock by rank, need ammo, and make a lot more noise (Heat). Equip here, then fire with Space (or the Hit button) in Street mode."));
+  var eqW = T.weaponById(T.state.equipped);
+  body.appendChild(el("div", "kpi", "Equipped: <strong>" + eqW.name + "</strong>" + (eqW.type === "gun" ? " · ammo " + (T.state.ammo[eqW.id] || 0) : "")));
+  T.weaponCards(body, function () { T.empire.render(); });
 };
 
 T.empire.tabInventory = function (body) {

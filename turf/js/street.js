@@ -26,6 +26,7 @@ var S = {
   player: null, cam: { x: 0, y: 0 },
   keys: {}, touch: { x: 0, y: 0, active: false }, actionHeld: false,
   stars: 0, lastCrime: 0, mission: null, msg: "", msgUntil: 0,
+  tracers: [], lastConvert: 0, nearGunShop: false, pastorDeadUntil: 0,
   running: false, lastFrame: 0
 };
 T.street = { _S: S };
@@ -110,7 +111,9 @@ function buildWorld() {
   // Pedestrians.
   S.peds = [];
   for (i = 0; i < 24; i++) spawnPed(false);
+  spawnPastor();
 
+  S.tracers = []; S.lastConvert = now(); S.pastorDeadUntil = 0;
   S.built = true;
 }
 
@@ -169,6 +172,27 @@ function spawnPolice() {
   var t = randRoadTile();
   S.police.push({ x: t.x, y: t.y, angle: 0, hp: 60, color: "#1f3a93", contact: 0 });
 }
+function spawnPastor() {
+  var ped = spawnPed(false);
+  if (!ped) return;
+  ped.preacher = true; ped.hostile = false; ped.hp = 60;
+  ped.color = "#f3ecd8"; ped.name = "Pastor";
+  ped.bubble = pick(T.PASTOR_LINES); ped.bubbleUntil = now() + 4000;
+}
+function spawnConvert() {
+  // Prefer converting an existing nearby civilian; else spawn a fresh one.
+  var p = S.player, chosen = null, bd = 420;
+  S.peds.forEach(function (ped) {
+    if (ped.hostile || ped.preacher || ped.convert) return;
+    var d = Math.hypot(ped.x - p.x, ped.y - p.y);
+    if (d < bd && d > 60) { bd = d; chosen = ped; }
+  });
+  if (!chosen) { chosen = spawnPed(false); if (!chosen) return; chosen.x = p.x + rand(-260, 260); chosen.y = p.y + rand(-260, 260); if (!walkable(chosen.x, chosen.y)) { chosen.x = p.x; chosen.y = p.y + 120; } }
+  chosen.convert = true; chosen.state = "approach"; chosen.color = "#9ad0ff"; chosen.flee = 0;
+  chosen.name = pick(T.pack().npcNames);
+  chosen.bubble = "Boss... I need to talk to you."; chosen.bubbleUntil = now() + 5000;
+  S.lastConvert = now();
+}
 
 /* ---------------------- input ------------------------------------------- */
 function bindInput() {
@@ -177,6 +201,8 @@ function bindInput() {
     S.keys[e.key.toLowerCase()] = true;
     if (["arrowup", "arrowdown", "arrowleft", "arrowright", " "].indexOf(e.key.toLowerCase()) >= 0) e.preventDefault();
     if (e.key.toLowerCase() === "e") tryEnterExit();
+    if (e.key.toLowerCase() === "q") switchWeapon();
+    if (e.key.toLowerCase() === "b" && S.nearGunShop) T.ui.gunShop();
     if (e.key.toLowerCase() === "m") T.toast("Minimap is bottom-left", "warn");
   });
   window.addEventListener("keyup", function (e) { S.keys[e.key.toLowerCase()] = false; });
@@ -207,6 +233,8 @@ function bindInput() {
   };
   bind("btn-action", function () { S.actionHeld = true; doAttack(); }, function () { S.actionHeld = false; });
   bind("btn-enter", function () { tryEnterExit(); });
+  bind("btn-weapon", function () { switchWeapon(); });
+  bind("btn-shop", function () { if (S.nearGunShop) T.ui.gunShop(); else T.toast("Stand by the gun shop", "warn"); });
 }
 
 /* ---------------------- player actions ---------------------------------- */
@@ -229,22 +257,78 @@ function tryEnterExit() {
   } else T.toast("No car nearby", "warn");
 }
 function doAttack() {
-  var p = S.player; if (p.atkCd > 0) return; p.atkCd = 20;
-  var hitAny = false;
-  S.peds.forEach(function (ped, i) {
-    if (Math.hypot(ped.x - p.x, ped.y - p.y) < 34) {
-      ped.hp -= 25; ped.flee = 120; hitAny = true;
-      if (!ped.hostile) addStars(1); // hitting a civilian is a crime
-      if (ped.hp <= 0) {
-        if (ped.hostile && S.mission && S.mission.kind === "turf") { S.mission.killed = (S.mission.killed || 0) + 1; }
-        S.peds.splice(i, 1);
-      }
+  var p = S.player; if (p.atkCd > 0) return;
+  var w = T.weaponById(T.state.equipped);
+  p.atkCd = w.cooldown;
+  if (w.type === "gun") {
+    var ammo = T.state.ammo[w.id] || 0;
+    if (ammo <= 0) {
+      if (!S._noAmmo || now() - S._noAmmo > 1500) { T.toast("Out of ammo for the " + w.name, "warn"); S._noAmmo = now(); }
+      return;
     }
-  });
-  S.police.forEach(function (po, i) {
-    if (Math.hypot(po.x - p.x, po.y - p.y) < 34) { po.hp -= 25; hitAny = true; addStars(1); if (po.hp <= 0) S.police.splice(i, 1); }
-  });
-  if (hitAny) { var dpx = Math.cos(p.angle), dpy = Math.sin(p.angle); }
+    T.state.ammo[w.id] = ammo - 1;
+    fireGun(w);
+    addStars(w.id === "pistol" ? 1 : 2); // guns are loud
+  } else {
+    meleeHit(w);
+  }
+}
+function angleDiff(a, b) { var d = a - b; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI; return d; }
+function onPedDamaged(ped) {
+  ped.flee = ped.flee || 120;
+  if (ped.preacher || ped.convert) { T.state.player.respect = Math.max(0, T.state.player.respect - 5); if (!S._badBiz || now() - S._badBiz > 2000) { T.toast("Rough on a man of God — bad for business.", "warn"); S._badBiz = now(); } addStars(1); }
+  else if (!ped.hostile) { addStars(1); } // hitting a civilian is a crime
+}
+function cleanupDead() {
+  for (var i = S.peds.length - 1; i >= 0; i--) {
+    if (S.peds[i].hp <= 0) {
+      var d = S.peds[i];
+      if (d.hostile && S.mission && S.mission.kind === "turf") S.mission.killed = (S.mission.killed || 0) + 1;
+      if (d.preacher) S.pastorDeadUntil = now() + 30000;
+      S.peds.splice(i, 1);
+    }
+  }
+  for (var j = S.police.length - 1; j >= 0; j--) if (S.police[j].hp <= 0) S.police.splice(j, 1);
+}
+function meleeHit(w) {
+  var p = S.player;
+  S.peds.forEach(function (ped) { if (Math.hypot(ped.x - p.x, ped.y - p.y) < w.range) { ped.hp -= w.damage; onPedDamaged(ped); } });
+  S.police.forEach(function (po) { if (Math.hypot(po.x - p.x, po.y - p.y) < w.range) { po.hp -= w.damage; addStars(1); } });
+  cleanupDead();
+}
+function fireGun(w) {
+  var p = S.player, aim = p.angle, tol = 0.55 + w.spread;
+  var cand = [];
+  S.peds.forEach(function (e) { cand.push({ e: e, kind: "ped" }); });
+  S.police.forEach(function (e) { cand.push({ e: e, kind: "pol" }); });
+  var hits = cand.map(function (c) {
+    var dx = c.e.x - p.x, dy = c.e.y - p.y, d = Math.hypot(dx, dy);
+    return { c: c, d: d, diff: Math.abs(angleDiff(Math.atan2(dy, dx), aim)) };
+  }).filter(function (h) { return h.d <= w.range && h.diff <= tol; }).sort(function (a, b) { return a.d - b.d; });
+
+  var endX = p.x + Math.cos(aim) * w.range, endY = p.y + Math.sin(aim) * w.range;
+  if (hits.length) { aim = Math.atan2(hits[0].c.e.y - p.y, hits[0].c.e.x - p.x); p.angle = aim; endX = hits[0].c.e.x; endY = hits[0].c.e.y; }
+  var n = Math.max(1, Math.min(w.pellets, hits.length));
+  for (var i = 0; i < n; i++) {
+    if (!hits[i]) break;
+    hits[i].c.e.hp -= w.damage;
+    if (hits[i].c.kind === "ped") onPedDamaged(hits[i].c.e); else addStars(1);
+  }
+  // muzzle tracers (spread for the shotgun feel)
+  var pel = w.pellets > 1 ? w.pellets : 1;
+  for (var k = 0; k < pel; k++) {
+    var j = (Math.random() - 0.5) * (w.spread + 0.05);
+    S.tracers.push({ x1: p.x, y1: p.y, x2: p.x + Math.cos(aim + j) * (w.range * 0.92), y2: p.y + Math.sin(aim + j) * (w.range * 0.92), until: now() + 70 });
+  }
+  cleanupDead();
+}
+function switchWeapon() {
+  var owned = T.WEAPONS.filter(function (w) { return T.state.weapons[w.id]; });
+  if (owned.length <= 1) { T.toast("Only fists for now — buy a weapon", "warn"); return; }
+  var idx = owned.map(function (w) { return w.id; }).indexOf(T.state.equipped);
+  var next = owned[(idx + 1) % owned.length];
+  T.state.equipped = next.id; T.save();
+  T.toast("Equipped " + next.name + (next.type === "gun" ? " (" + (T.state.ammo[next.id] || 0) + ")" : ""), "good");
 }
 function addStars(n) {
   S.stars = clamp(S.stars + n, 0, 5);
@@ -374,16 +458,46 @@ function update(dt) {
     }
   });
 
-  // pedestrians
+  // pedestrians (incl. the Pastor and born-again converts)
   S.peds.forEach(function (ped) {
     var speed = ped.flee > 0 ? 1.6 : 0.6;
+    var roam = ped.hostile || ped.convert; // these may cross roads, not just sidewalks
     if (ped.flee > 0) { ped.flee--; var ax = p.x - ped.x, ay = p.y - ped.y, al = Math.hypot(ax, ay) || 1; ped.dir = [-ax / al, -ay / al]; }
     else if (Math.random() < 0.02) ped.dir = pick([[1, 0], [-1, 0], [0, 1], [0, -1]]);
+
+    if (ped.preacher) {
+      if (now() > ped.bubbleUntil) { ped.bubble = pick(T.PASTOR_LINES); ped.bubbleUntil = now() + rand(3500, 6000); }
+    }
     if (ped.hostile) { var hx = p.x - ped.x, hy = p.y - ped.y, hl = Math.hypot(hx, hy) || 1; if (hl < 220) { ped.dir = [hx / hl, hy / hl]; speed = 1.1; if (hl < 26 && p.atkCd === 0 && Math.random() < 0.05) { p.hp -= 6; } } }
+
+    if (ped.convert && ped.state === "approach") {
+      var cx = p.x - ped.x, cy = p.y - ped.y, cl = Math.hypot(cx, cy) || 1;
+      ped.dir = [cx / cl, cy / cl]; speed = 1.3; ped.flee = 0;
+      if (cl < 30 && !T.ui._convertOpen) {
+        ped.state = "preached";
+        var scr = T.SCRIPTURES[Math.floor(Math.random() * T.SCRIPTURES.length)];
+        T.ui.bornAgain(ped.name, scr, function () { ped.state = "leave"; ped.flee = 300; });
+      }
+    }
+    if (ped.state === "leave" && ped.flee <= 0) { ped.remove = true; }
+
     var nx = ped.x + ped.dir[0] * speed, ny = ped.y + ped.dir[1] * speed;
-    if (ped.hostile ? walkable(nx, ped.y) : (tileAt(nx, ped.y) === SIDEWALK)) ped.x = nx; else ped.dir[0] *= -1;
-    if (ped.hostile ? walkable(ped.x, ny) : (tileAt(ped.x, ny) === SIDEWALK)) ped.y = ny; else ped.dir[1] *= -1;
+    if (roam ? walkable(nx, ped.y) : (tileAt(nx, ped.y) === SIDEWALK)) ped.x = nx; else ped.dir[0] *= -1;
+    if (roam ? walkable(ped.x, ny) : (tileAt(ped.x, ny) === SIDEWALK)) ped.y = ny; else ped.dir[1] *= -1;
   });
+  // retire converts that have wandered off
+  for (var pi = S.peds.length - 1; pi >= 0; pi--) if (S.peds[pi].remove) S.peds.splice(pi, 1);
+
+  // the Pastor's flock: spawn a convert now and then (not during a mission)
+  if (!T.ui._convertOpen && !S.mission && now() - S.lastConvert > 55000 &&
+      !S.peds.some(function (c) { return c.convert && (c.state === "approach" || c.state === "preached"); }) &&
+      Math.random() < 0.012) spawnConvert();
+  // keep one Pastor on the streets
+  if (now() > S.pastorDeadUntil && !S.peds.some(function (c) { return c.preacher; }) && Math.random() < 0.03) spawnPastor();
+
+  // gun shop proximity (open with B / the Guns button)
+  var gun = S.pois.filter(function (x) { return x.kind === "gun"; })[0];
+  S.nearGunShop = gun && Math.hypot(gun.x - p.x, gun.y - p.y) < 40;
   // keep a baseline pedestrian count (fewer at night)
   var want = T.sim.isNight() ? 12 : 22;
   if (S.peds.length < want && Math.random() < 0.05) spawnPed(false);
@@ -525,12 +639,25 @@ function render() {
   // cars
   S.cars.forEach(function (c) { if (c === S.player.car) return; drawCar(ctx, c); });
 
-  // peds
+  // peds (incl. Pastor & converts)
   S.peds.forEach(function (ped) {
     var sx = ped.x - S.cam.x, sy = ped.y - S.cam.y;
-    if (sx < -20 || sy < -20 || sx > W + 20 || sy > H + 20) return;
-    ctx.fillStyle = ped.color; ctx.beginPath(); ctx.arc(sx, sy, 6, 0, 6.28); ctx.fill();
+    if (sx < -40 || sy < -40 || sx > W + 40 || sy > H + 40) return;
+    var r = ped.preacher ? 7 : 6;
+    ctx.fillStyle = ped.color; ctx.beginPath(); ctx.arc(sx, sy, r, 0, 6.28); ctx.fill();
     if (ped.hostile) { ctx.strokeStyle = "#000"; ctx.stroke(); }
+    if (ped.preacher) { // white cross above
+      ctx.strokeStyle = "#6a4fb0"; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(sx, sy - 16); ctx.lineTo(sx, sy - 9); ctx.moveTo(sx - 3, sy - 14); ctx.lineTo(sx + 3, sy - 14); ctx.stroke(); ctx.lineWidth = 1;
+    }
+    if (ped.convert) { ctx.strokeStyle = "#f1c40f"; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(sx, sy - 11, 4, 0, 6.28); ctx.stroke(); ctx.lineWidth = 1; }
+    if ((ped.preacher || ped.convert) && ped.bubble && now() < ped.bubbleUntil) drawBubble(ctx, sx, sy - 22, ped.bubble);
+  });
+  // gunfire tracers
+  S.tracers = S.tracers.filter(function (t) { return t.until > now(); });
+  S.tracers.forEach(function (t) {
+    ctx.strokeStyle = "rgba(255,230,120,.9)"; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(t.x1 - S.cam.x, t.y1 - S.cam.y); ctx.lineTo(t.x2 - S.cam.x, t.y2 - S.cam.y); ctx.stroke(); ctx.lineWidth = 1;
   });
   // police
   S.police.forEach(function (po) { var sx = po.x - S.cam.x, sy = po.y - S.cam.y; ctx.fillStyle = po.color; ctx.beginPath(); ctx.arc(sx, sy, 7, 0, 6.28); ctx.fill(); ctx.fillStyle = "#e74c3c"; ctx.fillRect(sx - 4, sy - 10, 3, 3); ctx.fillStyle = "#3498db"; ctx.fillRect(sx + 1, sy - 10, 3, 3); });
@@ -570,6 +697,19 @@ function drawCar(ctx, c, isPlayer) {
   if (isPlayer) { ctx.strokeStyle = "#fff"; ctx.lineWidth = 1.5; ctx.strokeRect(-12, -7, 24, 14); }
   ctx.restore();
 }
+function drawBubble(ctx, cx, cy, text) {
+  text = text.length > 30 ? text.slice(0, 29) + "…" : text;
+  ctx.font = "9px system-ui"; ctx.textAlign = "center";
+  var w = ctx.measureText(text).width + 12;
+  ctx.fillStyle = "rgba(255,255,255,.92)";
+  roundRect(ctx, cx - w / 2, cy - 14, w, 16, 5); ctx.fill();
+  ctx.fillStyle = "#1a1a22"; ctx.fillText(text, cx, cy - 3);
+  ctx.textAlign = "left";
+}
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+}
 function drawMissionMarkers(ctx) {
   var m = S.mission;
   var mark = function (pt, col) { var sx = pt.x - S.cam.x, sy = pt.y - S.cam.y; ctx.fillStyle = col; ctx.beginPath(); ctx.arc(sx, sy, 11, 0, 6.28); ctx.fill(); ctx.strokeStyle = "#000"; ctx.stroke(); };
@@ -600,6 +740,12 @@ function renderHud() {
   var stars = ""; for (var i = 0; i < 5; i++) stars += i < S.stars ? "★" : "☆";
   set("sh-stars", stars);
   set("sh-clock", T.sim.clockStr() + (T.sim.isNight() ? " 🌙" : " ☀️"));
+  var w = T.weaponById(T.state.equipped);
+  set("sh-weapon", (w.type === "gun" ? "🔫 " : "🥊 ") + w.name + (w.type === "gun" ? " " + (T.state.ammo[w.id] || 0) : ""));
+  var shopBtn = document.getElementById("btn-shop");
+  if (shopBtn) shopBtn.style.display = S.nearGunShop ? "" : "none";
+  var shopHint = document.getElementById("sh-shophint");
+  if (shopHint) shopHint.style.display = S.nearGunShop ? "" : "none";
   var banner = document.getElementById("sh-mission");
   if (banner) {
     if (S.mission && now() < S.msgUntil) { banner.style.display = ""; banner.textContent = S.msg + missionExtra(); }

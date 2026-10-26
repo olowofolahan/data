@@ -156,6 +156,11 @@ body {
 .flyer-btns { margin-top: 24px; display: flex; gap: 10px; justify-content: center; }
 .flyer-card { cursor: pointer; }
 
+/* born-again convert */
+.convert-opener { font-style: italic; color: var(--accent); margin: 4px 0 10px; }
+.scripture { margin: 8px 0 14px; padding: 12px 14px; border-left: 3px solid var(--accent); background: var(--panel2); border-radius: 0 8px 8px 0; line-height: 1.5; }
+.scripture footer { margin-top: 8px; color: var(--muted); font-size: 13px; }
+
 /* toasts */
 #toasts { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); z-index: 200; display: flex; flex-direction: column; gap: 8px; align-items: center; pointer-events: none; }
 .toast { background: #111118; border: 1px solid var(--line); color: var(--ink); padding: 10px 16px; border-radius: 999px; font-size: 14px; font-weight: 600; opacity: 0; transform: translateY(10px); transition: all .3s; max-width: 90vw; }

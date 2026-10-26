@@ -37,6 +37,14 @@ Both modes share one state store (`localStorage` save, with export/import codes)
   flee, police with a 0–5 Heat-star system (chase, arrest, respray/evade to
   lose stars), and the five mission types — **delivery, getaway/collection,
   turf fight, car-theft order** — linked to Empire jobs via "Do it yourself".
+- **Weapons:** an Arsenal (Empire tab) and a street **gun shop** sell melee
+  (fists → bat → machete) and firearms (pistol → SMG → shotgun), unlocked by
+  rank, with ammo. Guns fire by hitscan with tracers and auto-aim; firing is
+  loud, so it spikes Heat. Equip anywhere; **Q** cycles weapons in the street.
+- **The Pastor & converts:** a Pastor roams the streets preaching the gospel in
+  speech bubbles. Every so often a reformed gang member walks up to the boss to
+  say they're **born again** and quotes a verse of Scripture (KJV). You can
+  bless them (eases Heat) or wave them off.
 - **Sim systems:** game clock with day/night (affects lighting, crowds, police,
   night-only jobs), Heat / Respect / Loyalty meters, energy & stamina regen over
   real time, **offline progress** ("While you were away"), **weekly upkeep**, and
