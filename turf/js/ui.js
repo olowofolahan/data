@@ -204,33 +204,6 @@ T.ui.gunShop = function () {
   var back = overlay(node, false);
 };
 
-/* ---- Born-again convert ------------------------------------------------- */
-T.ui.bornAgain = function (name, scripture, onClose) {
-  if (T.ui._convertOpen) { if (onClose) onClose(); return; }
-  T.ui._convertOpen = true;
-  var node = el("div", "convert");
-  node.appendChild(el("h2", null, "🙏 A convert approaches"));
-  node.appendChild(el("p", null, "<strong>" + name + "</strong> steps up, cap in hand:"));
-  node.appendChild(el("p", "convert-opener", "“" + pick(T.CONVERT_OPENERS) + "”"));
-  node.appendChild(el("blockquote", "scripture",
-    "“" + scripture.text + "”<footer>— " + scripture.ref + " (KJV)</footer>"));
-  var row = el("div", "row");
-  var bless = el("button", "btn", "🙏 Bless them & let them go");
-  bless.onclick = function () {
-    T.state.player.heat = Math.max(0, T.state.player.heat - 10);
-    T.state.player.respect += 2; T.state.converts = (T.state.converts || 0) + 1;
-    T.toast(name + " leaves in peace. Heat eases.", "good");
-    T.save(); close();
-  };
-  var wave = el("button", "btn btn--ghost", "Wave them off");
-  wave.onclick = function () { T.toast(name + " walks on, praying for you.", "warn"); close(); };
-  row.appendChild(bless); row.appendChild(wave);
-  node.appendChild(row);
-  function close() { back.close(); T.ui._convertOpen = false; if (onClose) onClose(); if (T.game.mode === "empire") T.empire.render(); }
-  var back = overlay(node, false);
-};
-function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
-
 /* ---- Generic choice overlay (title + html + buttons) ------------------- */
 T.ui.choice = function (title, html, options) {
   var node = el("div");

@@ -5,8 +5,7 @@
  * DOM dashboard (jobs incl. the risky political-thug sabotage, crew, properties,
  * districts & turf wars, rival fights, arsenal, friends/email invites).
  * Sim systems (clock, energy/stamina regen, offline progress, weekly upkeep,
- * random events incl. born-again convert visits, Heat/Respect/Loyalty) run on
- * a one-second heartbeat.
+ * random events, Heat/Respect/Loyalty) run on a one-second heartbeat.
  * The in-game ad system (billboards + flyers, parody fallback, tracking) is
  * wired through TURF.ads.
  * ========================================================================== */
@@ -70,9 +69,8 @@ T.newGame = function (country, name, look) {
     districts: districts,
     inventory: { items: [], flyers: [] },
     weapons: { fist: true }, ammo: {}, equipped: "fist",
-    converts: 0,
     friends: [],
-    lastConvertVisit: t, lastFlyerVisit: t,
+    lastFlyerVisit: t,
     flyersToday: 0, lastFlyerDay: 0,
     premium: false,
     gameMinutes: 8 * 60,          // start at 08:00 on day 0
@@ -112,9 +110,7 @@ T.ensureDefaults = function () {
   if (!s.weapons) s.weapons = { fist: true };
   if (!s.ammo) s.ammo = {};
   if (!s.equipped || !s.weapons[s.equipped]) s.equipped = "fist";
-  if (s.converts == null) s.converts = 0;
   if (!s.friends) s.friends = [];
-  if (s.lastConvertVisit == null) s.lastConvertVisit = now();
   if (s.lastFlyerVisit == null) s.lastFlyerVisit = now();
   // Energy bar is now 100 (refills 40/hour). Lift older saves to the new cap.
   if (s.resources && s.resources.energyMax < 100) {
@@ -404,20 +400,11 @@ T.game = { mode: "empire", raf: null };
  * kept as a thin no-op shim so older call sites stay valid. */
 T.game.setMode = function () { T.game.mode = "empire"; T.empire.render(); };
 
-/* Ambient Empire visitors: a born-again convert quoting Scripture (the
- * Pastor's flock, now that there's no street to roam), and the odd rewarded
- * flyer. Both are gated by cooldowns and skipped while an overlay is open. */
+/* Ambient Empire visitor: the odd rewarded flyer, gated by a cooldown and
+ * skipped while an overlay is open. */
 T.game.ambientVisits = function () {
   if (T.ui._anyOverlay && T.ui._anyOverlay()) return;
   var s = T.state, t = now();
-  // Convert visit: no sooner than every 3 min, ~2% chance per check.
-  if (t - s.lastConvertVisit > 180 * 1000 && Math.random() < 0.02) {
-    s.lastConvertVisit = t;
-    var name = T.pack().npcNames[Math.floor(Math.random() * T.pack().npcNames.length)];
-    var scr = T.SCRIPTURES[Math.floor(Math.random() * T.SCRIPTURES.length)];
-    T.ui.bornAgain(name, scr);
-    return;
-  }
   // Flyer visit: no sooner than every 4 min, ~1.5% chance; respects the daily cap.
   if (t - s.lastFlyerVisit > 240 * 1000 && Math.random() < 0.015) {
     s.lastFlyerVisit = t;

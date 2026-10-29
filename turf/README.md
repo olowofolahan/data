@@ -10,8 +10,7 @@ browser (desktop or mobile) and play.
 
 > Note: the real-time **Street mode** (top-down driving/shooting) was removed by
 > request — the game is now the **Empire dashboard** only. Its weapons live on as
-> the Arsenal (they boost fight strength), and the Pastor's born-again converts
-> now visit you on the dashboard.
+> the Arsenal (they boost fight strength).
 
 ## Play
 
@@ -51,9 +50,6 @@ Empire dashboard.
 - **Friends:** add friends by email and **invite them by email** — the invite
   opens your own mail app with the message and game link ready (the list is saved
   on your device).
-- **Born-again converts:** now and then a reformed gang member visits the
-  dashboard to say they're **born again** and quotes a verse of Scripture (KJV).
-  Bless them (eases Heat) or wave them off.
 - **Energy & stamina:** energy holds **100** and refills **40 per hour** (1 every
   90s); stamina holds **50**. Economy is tuned to realistic Lagos naira (lookout
   ≈ ₦4k–9k, a protection round ≈ ₦22k–38k, a kiosk ₦50k, a club ₦1.2M).
@@ -90,7 +86,7 @@ Everything a designer tunes lives in [`js/data.js`](js/data.js):
 | `css/styles.css` | all styling, mobile layout, overlays |
 | `js/data.js` | country packs, ads, jobs, props, crew, ranks (tuning) |
 | `js/game.js` | state store, save/load, sim, ads, Empire dashboard, friends |
-| `js/ui.js` | overlays (country select, flyers, upkeep, events, converts) |
+| `js/ui.js` | overlays (country select, flyers, upkeep, events, choices) |
 | `js/main.js` | bootstrap + main loop |
 
 ## Not yet (v2, per the design doc)
