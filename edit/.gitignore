@@ -1,0 +1,8 @@
+# Large / regenerable intermediates — not tracked
+audio.wav
+nowm.mp4
+final.mp4
+cover.jpg
+frames/
+cutchk/
+*.log

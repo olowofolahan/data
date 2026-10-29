@@ -1,0 +1,17 @@
+[0:v]trim=76.55:109.50,setpts=PTS-STARTPTS[v0];
+[0:a]atrim=76.55:109.50,asetpts=PTS-STARTPTS,afade=t=in:st=0:d=0.02,afade=t=out:st=32.90:d=0.05[a0];
+[0:v]trim=123.55:158.55,setpts=PTS-STARTPTS[v1];
+[0:a]atrim=123.55:158.55,asetpts=PTS-STARTPTS,afade=t=in:st=0:d=0.02,afade=t=out:st=34.95:d=0.05[a1];
+[0:v]trim=242.10:262.25,setpts=PTS-STARTPTS[v2];
+[0:a]atrim=242.10:262.25,asetpts=PTS-STARTPTS,afade=t=in:st=0:d=0.02,afade=t=out:st=20.10:d=0.05[a2];
+[v0][a0][v1][a1][v2][a2]concat=n=3:v=1:a=1[cv][ca];
+[cv]split[cvbg][cvfg];
+[cvbg]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,boxblur=30:2,eq=brightness=-0.07:saturation=1.08[bg];
+[cvfg]scale=1080:-2[fg];
+[bg][fg]overlay=(W-w)/2:(H-h)/2[base];
+[base]drawbox=x=170:y=296:w=740:h=222:color=black@0.5:t=fill,
+drawbox=x=170:y=296:w=740:h=222:color=0xF5821F@0.9:t=4,
+drawtext=fontfile=/usr/share/fonts/opentype/inter/Inter-Bold.otf:text='MODERN DATING\, DECODED':fontcolor=0xFFB366:fontsize=33:x=(w-text_w)/2:y=322,
+drawtext=fontfile=/usr/share/fonts/opentype/inter/Inter-ExtraBold.otf:text='Cushioning':fontcolor=white:fontsize=120:x=(w-text_w)/2:y=366,
+drawtext=fontfile=/usr/share/fonts/opentype/inter/Inter-Bold.otf:text='SAVE THIS':fontcolor=white:fontsize=36:x=(w-text_w)/2:y=1452:box=1:boxcolor=0xF5821F@0.95:boxborderw=22[vout];
+[ca]loudnorm=I=-14:TP=-1:LRA=11[aout]
