@@ -45,15 +45,17 @@ Empire dashboard.
   crew defending, high-danger area, high Heat). **Fight** (attack rival gangs).
 - **Arsenal:** two equip slots — a **weapon** (Attack) and a piece of **gear**
   (Defence, some also Attack).
-  - Weapons: melee (fists → bat → machete), firearms (pistol → SMG → shotgun)
-    and, at Kingpin, **Political influence** (biggest Attack bonus; also lowers
-    job Heat and bribe risk).
+  - Weapons: melee (fists → bat → machete), firearms (pistol → SMG → shotgun),
+    heavy ordnance (**Grenades**, **RPG / missiles**) and, at Kingpin, **Political
+    influence** (also lowers job Heat and bribe risk). Each shows its unlock rank.
   - Gear: Light vest, Brass knuckles, Kevlar vest, Attack dog, Bodyguard,
-    Armoured SUV — these raise your **Defence** (and some your Attack). Defence
-    cuts the damage you take when a fight or turf war goes against you. Crew
-    attack/defence stack on top.
-  - **Upgrade gear** up to Lv 5: each level adds +40% of its base bonus (cost
-    rises per level), just like upgrading a property.
+    Armoured SUV raise your **Defence** (some also Attack). The heavy gear —
+    **Armoured truck, Attack helicopter, Private militia** — adds **district
+    defence** that shields *all* your districts from rival raids while equipped.
+  - **Upgrade gear** up to Lv 5: each level adds +40% of its bonuses (cost rises
+    per level), like upgrading a property.
+  - Every shop shows the required **rank** (name + level) to unlock, and your
+    current rank/number is in the header.
 - **Friends:** add friends by email and **invite them by email** — the invite
   opens your own mail app with the message and game link ready (the list is saved
   on your device).

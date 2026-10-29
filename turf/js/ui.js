@@ -224,6 +224,30 @@ T.ui.choice = function (title, html, options) {
   return back;
 };
 
+/* ---- Text prompt overlay (replaces window.prompt, blocked in sandboxes) -- */
+T.ui.prompt = function (opts) {
+  var node = el("div");
+  node.appendChild(el("h2", null, opts.title));
+  if (opts.html) { var d = el("div"); d.innerHTML = opts.html; node.appendChild(d); }
+  var input = el(opts.multiline ? "textarea" : "input", "input");
+  if (opts.multiline) input.rows = 4;
+  input.value = opts.value || "";
+  if (opts.placeholder) input.placeholder = opts.placeholder;
+  if (opts.readOnly) { input.readOnly = true; }
+  node.appendChild(input);
+  if (opts.confirmLabel) {
+    var ok = el("button", "btn btn--big", opts.confirmLabel);
+    ok.onclick = function () { back.close(); if (opts.onConfirm) opts.onConfirm(input.value); };
+    node.appendChild(ok);
+  }
+  var close = el("button", "btn btn--ghost btn--big", opts.readOnly ? "Close" : "Cancel");
+  close.onclick = function () { back.close(); };
+  node.appendChild(close);
+  var back = overlay(node, true);
+  setTimeout(function () { try { input.focus(); if (opts.readOnly) input.select(); } catch (e) {} }, 60);
+  return back;
+};
+
 /* ---- Clinic (knocked out in an Empire fight) --------------------------- */
 T.ui.clinic = function () {
   var fee = 80 * T.pack().priceScale;

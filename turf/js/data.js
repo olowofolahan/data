@@ -30,6 +30,12 @@ TURF.rankForLevel = function (level) {
   }
   return TURF.RANKS[0];
 };
+/* 1-based rank number for a level (Hustler = 1 … Kingpin = 6). */
+TURF.rankNumber = function (level) { return TURF.RANKS.indexOf(TURF.rankForLevel(level)) + 1; };
+/* The rank required by a 1-based minRank value (as used by shops). */
+TURF.rankReq = function (minRank) { return TURF.RANKS[Math.max(0, Math.min(TURF.RANKS.length - 1, minRank - 1))]; };
+/* Human-readable requirement label, e.g. "Enforcer (Lv 13)". */
+TURF.reqLabel = function (minRank) { var r = TURF.rankReq(minRank); return r.name + " (Lv " + r.min + ")"; };
 
 /* -------------------------------------------------------------------------- */
 /* Crew roles                                                                 */
@@ -117,9 +123,12 @@ TURF.COUNTRY_PACKS = {
       { id: "oshodi",   name: "Oshodi Hub",     type: "transport", income: 100, danger: 3, color: "#e05a7a" }
     ],
     rivals: [
-      { id: "eko_boys",   name: "Eko Boys",      color: "#c0392b" },
-      { id: "lagoon_set", name: "Lagoon Set",    color: "#2980b9" },
-      { id: "area_fathers", name: "Area Fathers",color: "#8e44ad" }
+      { id: "eko_boys",      name: "Eko Boys",      color: "#c0392b" },
+      { id: "lagoon_set",    name: "Lagoon Set",    color: "#2980b9" },
+      { id: "area_fathers",  name: "Area Fathers",  color: "#8e44ad" },
+      { id: "island_cartel", name: "Island Cartel", color: "#16a085" },
+      { id: "mushin_vipers", name: "Mushin Vipers", color: "#d35400" },
+      { id: "badoo_set",     name: "Badoo Set",     color: "#7f8c8d" }
     ],
     npcNames: ["Tunde", "Ngozi", "Emeka", "Bisi", "Chidi", "Funke", "Segun", "Amaka", "Kola", "Yemi"],
     npcLines: ["How far?", "No wahala.", "Abeg shift!", "Na who be this?", "Make we dey go.", "Chop knuckle!"],
@@ -159,9 +168,12 @@ TURF.COUNTRY_PACKS = {
       { id: "station",  name: "Union Station",  type: "transport", income: 100, danger: 3, color: "#e05a7a" }
     ],
     rivals: [
-      { id: "northside", name: "Northside Crew", color: "#c0392b" },
-      { id: "rivermen",  name: "The Rivermen",   color: "#2980b9" },
-      { id: "frost_kings",name: "Frost Kings",   color: "#8e44ad" }
+      { id: "northside",   name: "Northside Crew",  color: "#c0392b" },
+      { id: "rivermen",    name: "The Rivermen",    color: "#2980b9" },
+      { id: "frost_kings", name: "Frost Kings",     color: "#8e44ad" },
+      { id: "oil_barons",  name: "Oil Barons",      color: "#16a085" },
+      { id: "prairie_wolves", name: "Prairie Wolves", color: "#d35400" },
+      { id: "the_combine", name: "The Combine",     color: "#7f8c8d" }
     ],
     npcNames: ["Dylan", "Marie", "Chase", "Nicole", "Brett", "Chantal", "Kyle", "Amber", "Shane", "Josee"],
     npcLines: ["How's it goin', eh?", "Cold out.", "Watch the ice.", "Take off.", "Beauty.", "No worries."],
@@ -204,6 +216,8 @@ TURF.WEAPONS = [
   { id: "pistol",  name: "Pistol",       type: "gun",   damage: 45, range: 260, cooldown: 16, minRank: 3, cost: 2600, heat: 4, clip: 12, ammoCost: 200, spread: 0.06, pellets: 1 },
   { id: "smg",     name: "SMG",          type: "gun",   damage: 32, range: 240, cooldown: 6,  minRank: 4, cost: 7200, heat: 6, clip: 30, ammoCost: 500, spread: 0.14, pellets: 1 },
   { id: "shotgun", name: "Shotgun",      type: "gun",   damage: 26, range: 150, cooldown: 34, minRank: 4, cost: 9000, heat: 7, clip: 6,  ammoCost: 400, spread: 0.42, pellets: 6 },
+  { id: "grenades", name: "Grenades",    type: "explosive", damage: 70,  range: 120, cooldown: 40, minRank: 4, cost: 12000, heat: 9 },
+  { id: "rpg",      name: "RPG / missiles", type: "explosive", damage: 120, range: 300, cooldown: 60, minRank: 5, cost: 45000, heat: 12 },
   { id: "influence", name: "Political influence", type: "influence", damage: 90, range: 0, cooldown: 0, minRank: 5, cost: 30000, heat: 0 }
 ];
 TURF.weaponById = function (id) { return TURF.WEAPONS.filter(function (w) { return w.id === id; })[0] || TURF.WEAPONS[0]; };
@@ -218,7 +232,11 @@ TURF.GEAR = [
   { id: "kevlar",   name: "Kevlar vest",     atk: 0,  def: 20, cost: 5000,  minRank: 2, desc: "Serious protection in a firefight." },
   { id: "dog",      name: "Attack dog",      atk: 12, def: 6,  cost: 3500,  minRank: 2, desc: "Bites first, asks later." },
   { id: "guard",    name: "Bodyguard",       atk: 6,  def: 18, cost: 8000,  minRank: 3, desc: "A pro who covers your back." },
-  { id: "suv",      name: "Armoured SUV",    atk: 5,  def: 28, cost: 15000, minRank: 4, desc: "Roll heavy, roll safe." }
+  { id: "suv",      name: "Armoured SUV",    atk: 5,  def: 28, cost: 15000, minRank: 4, emoji: "🚙", desc: "Roll heavy, roll safe." },
+  // Heavy gear: also guards your districts (ddef) against rival raids.
+  { id: "truck",    name: "Armoured truck",     atk: 8,  def: 24, ddef: 10, cost: 18000, minRank: 4, emoji: "🚚", desc: "Rolling fortress that guards your blocks." },
+  { id: "heli",     name: "Attack helicopter",  atk: 20, def: 20, ddef: 18, cost: 60000, minRank: 5, emoji: "🚁", desc: "Eyes in the sky — rivals think twice before raiding." },
+  { id: "militia",  name: "Private militia",    atk: 25, def: 25, ddef: 25, cost: 90000, minRank: 5, emoji: "🎖️", desc: "Your own standing army holds the turf hard." }
 ];
 TURF.gearById = function (id) { return TURF.GEAR.filter(function (g) { return g.id === id; })[0] || null; };
 

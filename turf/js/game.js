@@ -309,6 +309,9 @@ T.sim.rivalTick = function () {
   else { drop = Math.max(2, drop - crew * 4); reasons.push("your " + crew + " crew limited the damage"); }
   if (dMeta.danger >= 4) { drop += 2; reasons.push("it's a high-danger area"); }
   if (T.state.player.heat >= 60) { drop += 3; reasons.push("high Heat tied up your crew"); }
+  // Heavy gear (armoured truck, helicopter, militia) guards every district.
+  var ddef = T.empire.districtDefense();
+  if (ddef > 0) { drop = Math.max(2, drop - Math.round(ddef / 2)); reasons.push("your heavy gear held them off"); }
   if (!reasons.length) reasons.push("steady rival pressure");
 
   st.control = clamp(st.control - drop, 0, 100);
@@ -450,7 +453,7 @@ T.empire.refreshHeader = function () {
   var need = T.xpForLevel(s.player.level);
   var set = function (sel, v) { var e = $(sel); if (e) e.textContent = v; };
   set("#hd-name", s.player.name);
-  set("#hd-rank", rk.name + " · Lv " + s.player.level);
+  set("#hd-rank", rk.name + " · Rank " + T.rankNumber(s.player.level) + " · Lv " + s.player.level);
   set("#hd-cash", T.money(s.player.cash));
   set("#hd-energy", Math.floor(r.energy) + "/" + r.energyMax);
   set("#hd-stamina", Math.floor(r.stamina) + "/" + r.staminaMax);
@@ -799,11 +802,13 @@ T.empire.tabCrew = function (body) {
     raise.onclick = function () { c.wage += 1; c.loyalty = clamp(c.loyalty + 18, 0, 100); T.toast(c.name + " got a raise — loyalty up", "good"); T.save(); T.empire.render(); };
     var fire = el("button", "btn btn--danger", "Fire");
     fire.onclick = function () {
-      if (!confirm("Fire " + c.name + " (" + T.CREW_ROLES[c.role].label + ")? This can't be undone.")) return;
-      s.crew = s.crew.filter(function (x) { return x.id !== c.id; });
-      // Letting someone go rattles the rest a little.
-      s.crew.forEach(function (x) { x.loyalty = clamp(x.loyalty - 5, 0, 100); });
-      T.toast(c.name + " was let go", "warn"); T.save(); T.empire.render();
+      T.ui.choice("Fire " + c.name + "?", "<p class='muted'>" + T.CREW_ROLES[c.role].label + " — this can't be undone, and the rest of the crew won't love it.</p>", [
+        { label: "Fire " + c.name, kind: "danger", onClick: function () {
+          s.crew = s.crew.filter(function (x) { return x.id !== c.id; });
+          s.crew.forEach(function (x) { x.loyalty = clamp(x.loyalty - 5, 0, 100); });
+          T.toast(c.name + " was let go", "warn"); T.save(); T.empire.render();
+        } }
+      ]);
     };
     btns.appendChild(gift); btns.appendChild(raise); btns.appendChild(fire);
     card.appendChild(btns);
@@ -823,6 +828,7 @@ T.empire.tabProps = function (body) {
   body.appendChild(collect);
 
   body.appendChild(el("h3", null, "Buy a front"));
+  body.appendChild(el("p", "muted small", "Your rank: <strong>" + T.rankForLevel(s.player.level).name + " (Rank " + T.rankNumber(s.player.level) + ", Lv " + s.player.level + ")</strong>. Do jobs to earn XP and rank up."));
   var shop = el("div", "cards");
   T.PROPERTIES.forEach(function (tpl) {
     var cost = tpl.cost * T.pack().priceScale;
@@ -830,9 +836,10 @@ T.empire.tabProps = function (body) {
     var locked = rankIdx < tpl.minRank;
     card.innerHTML = "<h4>" + tpl.name + "</h4>" +
       "<div class='row muted'><span>" + T.money(tpl.income * T.pack().priceScale) + " / " + tpl.everySec + "s</span></div>" +
-      "<div class='row'><span>" + T.money(cost) + "</span><span class='muted'>" + (locked ? "Rank " + tpl.minRank : "") + "</span></div>";
-    var b = el("button", "btn", "Buy");
+      "<div class='row'><span>" + T.money(cost) + "</span><span class='muted'>" + (locked ? "🔒 " + T.reqLabel(tpl.minRank) : "") + "</span></div>";
+    var b = el("button", "btn", locked ? "🔒 " + T.rankReq(tpl.minRank).name : "Buy");
     b.disabled = locked || s.player.cash < cost;
+    if (locked) b.title = "Unlocks at " + T.reqLabel(tpl.minRank);
     b.onclick = function () {
       s.player.cash -= cost;
       // place it in a district the player owns, else the starter district
@@ -869,6 +876,9 @@ T.empire.tabProps = function (body) {
 T.empire.tabDistricts = function (body) {
   var s = T.state, pk = T.pack();
   body.appendChild(el("p", "muted", "Push control to 100% to own a district. Jobs and collections raise it; rivals push it down. Assign crew (Crew tab) to defend."));
+  var dd = T.empire.districtDefense();
+  if (dd > 0) body.appendChild(el("div", "kpi", "🏙️ Heavy-gear district defence: <strong>+" + dd + "</strong> — your equipped " + T.empire.gearEquipped().name + " shields every district from raids."));
+  else body.appendChild(el("p", "muted small", "Tip: equip heavy gear (Armoured truck, Attack helicopter, Private militia) in the Arsenal to shield all your districts from raids."));
   var list = el("div", "cards");
   pk.districts.forEach(function (d) {
     var st = s.districts[d.id];
@@ -931,7 +941,15 @@ T.empire.tabDistricts = function (body) {
 
 /* Combat strength = base + crew attack + level + equipped weapon + gear attack. */
 T.weaponBonus = function (w) {
-  return Math.round((w.damage || 0) / 3) + (w.type === "gun" ? 6 : 0) + (w.type === "influence" ? 10 : 0);
+  return Math.round((w.damage || 0) / 3) + (w.type === "gun" ? 6 : 0) + (w.type === "explosive" ? 8 : 0) + (w.type === "influence" ? 10 : 0);
+};
+/* District defence a piece of gear grants while equipped (scales with level). */
+T.gearDistrictDef = function (id) {
+  var g = T.gearById(id); if (!g || !g.ddef) return 0;
+  var lvl = T.gearLevel(id) || 1; return Math.round(g.ddef * (1 + 0.4 * (lvl - 1)));
+};
+T.empire.districtDefense = function () {
+  return T.state.equippedGear ? T.gearDistrictDef(T.state.equippedGear) : 0;
 };
 T.gearLevel = function (id) { var v = T.state.gear[id]; return typeof v === "number" ? v : (v ? 1 : 0); };
 T.GEAR_MAX_LEVEL = 5;
@@ -1088,15 +1106,19 @@ T.gearCards = function (host, onChange) {
     var owned = !!s.gear[g.id], on = s.equippedGear === g.id;
     var eff = owned ? T.gearEffective(g.id) : { atk: g.atk, def: g.def, level: 1 };
     var card = el("div", "card" + (on ? " card--hi" : ""));
-    var bonus = (eff.atk ? "+" + eff.atk + " ⚔️" : "") + (eff.atk && eff.def ? " · " : "") + (eff.def ? "+" + eff.def + " 🛡️" : "");
-    card.innerHTML = "<h4>🧥 " + g.name + (owned ? " <span class='muted small'>Lv " + eff.level + "/" + T.GEAR_MAX_LEVEL + "</span>" : "") + "</h4>" +
+    var ddef = owned ? T.gearDistrictDef(g.id) : (g.ddef || 0);
+    var bonus = (eff.atk ? "+" + eff.atk + " ⚔️" : "") + (eff.atk && eff.def ? " · " : "") + (eff.def ? "+" + eff.def + " 🛡️" : "") +
+      (ddef ? ((eff.atk || eff.def ? " · " : "") + "+" + ddef + " 🏙️ district def") : "");
+    var gLocked = rankIdx < g.minRank;
+    card.innerHTML = "<h4>" + (g.emoji || "🧥") + " " + g.name + (owned ? " <span class='muted small'>Lv " + eff.level + "/" + T.GEAR_MAX_LEVEL + "</span>" : "") + "</h4>" +
       "<div class='muted small'>" + bonus + "</div>" +
-      "<div class='muted small'>" + g.desc + "</div>";
+      "<div class='muted small'>" + g.desc + "</div>" +
+      (gLocked ? "<div class='muted small risk'>🔒 Unlocks at " + T.reqLabel(g.minRank) + "</div>" : "");
     var row = el("div", "row");
     if (!owned) {
-      var buy = el("button", "btn", "Buy " + T.money(g.cost * T.pack().priceScale));
-      buy.disabled = rankIdx < g.minRank || s.player.cash < g.cost * T.pack().priceScale;
-      if (rankIdx < g.minRank) buy.title = "Rank " + g.minRank;
+      var buy = el("button", "btn", gLocked ? "🔒 " + T.rankReq(g.minRank).name : "Buy " + T.money(g.cost * T.pack().priceScale));
+      buy.disabled = gLocked || s.player.cash < g.cost * T.pack().priceScale;
+      if (gLocked) buy.title = "Unlocks at " + T.reqLabel(g.minRank);
       buy.onclick = function () { if (T.buyGear(g)) onChange(); };
       row.appendChild(buy);
     } else {
@@ -1123,18 +1145,20 @@ T.weaponCards = function (host, onChange) {
     var owned = !!s.weapons[w.id];
     var card = el("div", "card" + (s.equipped === w.id ? " card--hi" : ""));
     var power = T.weaponBonus(w);
-    var kindLabel = w.type === "gun" ? "firearm" : w.type === "influence" ? "political clout" : "melee";
-    var icon = w.type === "gun" ? " 🔫" : w.type === "influence" ? " 🏛️" : " 🥊";
+    var kindLabel = w.type === "gun" ? "firearm" : w.type === "explosive" ? "heavy ordnance" : w.type === "influence" ? "political clout" : "melee";
+    var icon = w.type === "gun" ? " 🔫" : w.type === "explosive" ? " 💥" : w.type === "influence" ? " 🏛️" : " 🥊";
     var extra = w.type === "influence" ? " · lowers job Heat & bribe risk" : "";
+    var rankLocked = rankIdx < w.minRank;
     var stats = kindLabel + " · +" + power + " strength · +Heat " + w.heat + extra;
     card.innerHTML = "<h4>" + w.name + icon + "</h4>" +
-      "<div class='muted small'>" + stats + "</div>";
+      "<div class='muted small'>" + stats + "</div>" +
+      (rankLocked ? "<div class='muted small risk'>🔒 Unlocks at " + T.reqLabel(w.minRank) + "</div>" : "");
     var row = el("div", "row");
     if (!owned) {
-      var buy = el("button", "btn", w.cost ? "Buy " + T.money(w.cost * T.pack().priceScale) : "Owned");
-      buy.disabled = !!w.cost === false || rankIdx < w.minRank || s.player.cash < w.cost * T.pack().priceScale;
+      var buy = el("button", "btn", rankLocked ? "🔒 " + T.rankReq(w.minRank).name : (w.cost ? "Buy " + T.money(w.cost * T.pack().priceScale) : "Owned"));
+      buy.disabled = !!w.cost === false || rankLocked || s.player.cash < w.cost * T.pack().priceScale;
       if (w.cost === 0) { buy.disabled = true; buy.textContent = "Default"; }
-      if (rankIdx < w.minRank) buy.title = "Rank " + w.minRank;
+      if (rankLocked) buy.title = "Unlocks at " + T.reqLabel(w.minRank);
       buy.onclick = function () { if (T.buyWeapon(w)) onChange(); };
       row.appendChild(buy);
     } else {
@@ -1282,20 +1306,31 @@ T.empire.tabProfile = function (body) {
 
   if (owned === T.pack().districts.length && s.player.level >= 41) {
     var prestige = el("button", "btn", "Prestige (retire & restart with a bonus)");
-    prestige.onclick = function () { if (confirm("Retire as Kingpin and start fresh with a permanent income bonus?")) { T.toast("Prestige coming in v2 — badge earned!", "good"); } };
+    prestige.onclick = function () {
+      T.ui.choice("Prestige?", "<p class='muted'>Retire as Kingpin and start fresh with a permanent income bonus?</p>", [
+        { label: "Retire as Kingpin", onClick: function () { T.toast("Prestige coming in v2 — badge earned!", "good"); } }
+      ]);
+    };
     body.appendChild(prestige);
   }
 
   body.appendChild(el("h3", null, "Save"));
   var tools = el("div", "row");
   var exp = el("button", "btn btn--ghost", "Export save code");
-  exp.onclick = function () { var c = T.exportCode(); prompt("Copy this save code:", c); };
+  exp.onclick = function () { T.ui.prompt({ title: "Your save code", html: "<p class='muted'>Copy this and keep it safe. Paste it into Import on another device to continue.</p>", value: T.exportCode(), multiline: true, readOnly: true }); };
   var imp = el("button", "btn btn--ghost", "Import save code");
-  imp.onclick = function () { var c = prompt("Paste a save code:"); if (c && T.importCode(c)) { T.toast("Loaded.", "good"); location.reload(); } else if (c) T.toast("Invalid code", "bad"); };
+  imp.onclick = function () {
+    T.ui.prompt({ title: "Import save code", html: "<p class='muted'>Paste a save code. This replaces your current game.</p>", placeholder: "paste your code here", multiline: true, confirmLabel: "Load",
+      onConfirm: function (v) { if (v && T.importCode(v.trim())) { T.toast("Loaded.", "good"); location.reload(); } else if (v) T.toast("Invalid code", "bad"); } });
+  };
   var prem = el("button", "btn btn--ghost", s.premium ? "Premium: on" : "Toggle premium (demo)");
   prem.onclick = function () { s.premium = !s.premium; var b = $("#hd-banner"); if (b) delete b.dataset.filled; T.toast("Premium " + (s.premium ? "on — paid billboards become parody" : "off"), "good"); T.save(); T.empire.render(); };
   var reset = el("button", "btn btn--danger", "Delete save");
-  reset.onclick = function () { if (confirm("Delete your save and start over?")) { try { localStorage.removeItem(SAVE_KEY); } catch (e) {} location.reload(); } };
+  reset.onclick = function () {
+    T.ui.choice("Delete save?", "<p class='muted'>This wipes your game and starts over. Can't be undone.</p>", [
+      { label: "Delete everything", kind: "danger", onClick: function () { try { localStorage.removeItem(SAVE_KEY); } catch (e) {} location.reload(); } }
+    ]);
+  };
   tools.appendChild(exp); tools.appendChild(imp); tools.appendChild(prem); tools.appendChild(reset);
   body.appendChild(tools);
 };
