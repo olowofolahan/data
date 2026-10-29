@@ -43,10 +43,15 @@ Empire dashboard.
   takeover, and **turf wars** resolved with your strength). When a district is
   slipping, the card and the alert **tell you why** (which rival raided it, no
   crew defending, high-danger area, high Heat). **Fight** (attack rival gangs).
-- **Arsenal:** buy & equip melee (fists → bat → machete), firearms (pistol → SMG
-  → shotgun) and, at Kingpin, **Political influence** — a "weapon" of pure clout
-  that gives the biggest strength bonus and also **lowers your job Heat and bribe
-  risk**. The equipped weapon adds to your strength in fights and turf wars.
+- **Arsenal:** two equip slots — a **weapon** (Attack) and a piece of **gear**
+  (Defence, some also Attack).
+  - Weapons: melee (fists → bat → machete), firearms (pistol → SMG → shotgun)
+    and, at Kingpin, **Political influence** (biggest Attack bonus; also lowers
+    job Heat and bribe risk).
+  - Gear: Light vest, Brass knuckles, Kevlar vest, Attack dog, Bodyguard,
+    Armoured SUV — these raise your **Defence** (and some your Attack). Defence
+    cuts the damage you take when a fight or turf war goes against you. Crew
+    attack/defence stack on top.
 - **Friends:** add friends by email and **invite them by email** — the invite
   opens your own mail app with the message and game link ready (the list is saved
   on your device).

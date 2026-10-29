@@ -69,6 +69,7 @@ T.newGame = function (country, name, look) {
     districts: districts,
     inventory: { items: [], flyers: [] },
     weapons: { fist: true }, ammo: {}, equipped: "fist",
+    gear: {}, equippedGear: null,
     friends: [],
     lastFlyerVisit: t,
     flyersToday: 0, lastFlyerDay: 0,
@@ -111,6 +112,8 @@ T.ensureDefaults = function () {
   if (!s.ammo) s.ammo = {};
   if (!s.equipped || !s.weapons[s.equipped]) s.equipped = "fist";
   if (!s.friends) s.friends = [];
+  if (!s.gear) s.gear = {};
+  if (s.equippedGear === undefined) s.equippedGear = null;
   if (s.lastFlyerVisit == null) s.lastFlyerVisit = now();
   // Energy bar is now 100 (refills 40/hour). Lift older saves to the new cap.
   if (s.resources && s.resources.energyMax < 100) {
@@ -910,7 +913,7 @@ T.empire.tabDistricts = function (body) {
         var gain = clamp(Math.round((strength - resist) / 2) + randint(10, 25), 6, 60);
         st.control = clamp(st.control + gain, 0, 100);
         s.player.heat = clamp(s.player.heat + 8, 0, 100);
-        s.resources.health = clamp(s.resources.health - randint(5, 20), 0, s.resources.healthMax);
+        s.resources.health = clamp(s.resources.health - T.empire.mitigate(randint(5, 20)), 0, s.resources.healthMax);
         T.sim.addXp(18);
         if (st.control >= 100) { st.owner = "player"; st.control = 100; s.player.respect += 40; T.toast("Won the turf war for " + d.name + "!", "good"); }
         else T.toast("Turf war: " + d.name + " control +" + gain + "%", "good");
@@ -924,21 +927,32 @@ T.empire.tabDistricts = function (body) {
   body.appendChild(list);
 };
 
-/* Combat strength = base + crew attack + level + the equipped weapon. */
+/* Combat strength = base + crew attack + level + equipped weapon + gear attack. */
 T.weaponBonus = function (w) {
   return Math.round((w.damage || 0) / 3) + (w.type === "gun" ? 6 : 0) + (w.type === "influence" ? 10 : 0);
 };
+T.empire.gearEquipped = function () { return T.state.equippedGear ? T.gearById(T.state.equippedGear) : null; };
 T.empire.fightStrength = function () {
-  var s = T.state;
-  return 10 + s.crew.reduce(function (a, c) { return a + c.attack; }, 0) + s.player.level * 2 + T.weaponBonus(T.weaponById(s.equipped));
+  var s = T.state, g = T.empire.gearEquipped();
+  return 10 + s.crew.reduce(function (a, c) { return a + c.attack; }, 0) + s.player.level * 2 +
+    T.weaponBonus(T.weaponById(s.equipped)) + (g ? g.atk : 0);
+};
+/* Defence = base + rank + crew defence + equipped gear. Cuts damage taken. */
+T.empire.playerDefense = function () {
+  var s = T.state, g = T.empire.gearEquipped();
+  return 5 + s.player.level + s.crew.reduce(function (a, c) { return a + c.defense; }, 0) + (g ? g.def : 0);
+};
+/* Damage mitigation from Defence, applied to health loss in fights/turf wars. */
+T.empire.mitigate = function (dmg) {
+  return Math.max(3, Math.round(dmg - T.empire.playerDefense() / 4));
 };
 
 T.empire.tabFight = function (body) {
   var s = T.state, pk = T.pack();
-  body.appendChild(el("p", "muted", "Attack a rival crew. Outcome = your strength (crew + rank + equipped weapon) vs their defence, plus a little luck. Costs stamina."));
-  var myAtk = T.empire.fightStrength();
-  var w = T.weaponById(s.equipped);
-  body.appendChild(el("div", "kpi", "Your strength: <strong>" + myAtk + "</strong> · Weapon: " + w.name + " · Stamina " + Math.floor(s.resources.stamina) + "/" + s.resources.staminaMax));
+  body.appendChild(el("p", "muted", "Attack a rival crew. Your Attack vs their defence decides the win; your Defence cuts the damage you take when it goes wrong. Build both in the Arsenal and Crew tabs."));
+  var myAtk = T.empire.fightStrength(), myDef = T.empire.playerDefense();
+  var w = T.weaponById(s.equipped), g = T.empire.gearEquipped();
+  body.appendChild(el("div", "kpi", "⚔️ Attack: <strong>" + myAtk + "</strong> · 🛡️ Defence: <strong>" + myDef + "</strong> · Weapon: " + w.name + " · Gear: " + (g ? g.name : "none") + " · Stamina " + Math.floor(s.resources.stamina) + "/" + s.resources.staminaMax));
   var list = el("div", "cards");
   pk.rivals.forEach(function (r, i) {
     var def = 12 + i * 10 + s.player.level * 2;
@@ -956,9 +970,10 @@ T.empire.tabFight = function (body) {
         T.sim.addXp(20);
         T.toast("Beat " + r.name + "! +" + T.money(loot) + ", +15 Respect", "good");
       } else {
-        s.resources.health = clamp(s.resources.health - randint(10, 30), 0, s.resources.healthMax);
+        var dmg = T.empire.mitigate(randint(10, 30));
+        s.resources.health = clamp(s.resources.health - dmg, 0, s.resources.healthMax);
         s.player.respect = Math.max(0, s.player.respect - 8);
-        T.toast("Lost the fight with " + r.name, "bad");
+        T.toast("Lost the fight with " + r.name + " (−" + dmg + " health)", "bad");
         if (s.resources.health <= 0) T.ui.clinic();
       }
       T.save(); T.empire.render();
@@ -991,6 +1006,51 @@ T.buyAmmo = function (w) {
 T.equipWeapon = function (id) {
   if (!T.state.weapons[id]) return false;
   T.state.equipped = id; T.toast("Equipped " + T.weaponById(id).name, "good"); T.save(); return true;
+};
+T.buyGear = function (g) {
+  var s = T.state, cost = g.cost * T.pack().priceScale;
+  if (s.gear[g.id]) return false;
+  var rankIdx = T.RANKS.indexOf(T.rankForLevel(s.player.level)) + 1;
+  if (rankIdx < g.minRank) { T.toast("Needs rank " + g.minRank, "warn"); return false; }
+  if (s.player.cash < cost) { T.toast("Can't afford it", "warn"); return false; }
+  s.player.cash -= cost; s.gear[g.id] = true;
+  T.toast("Bought " + g.name, "good"); T.save(); return true;
+};
+T.equipGear = function (id) {
+  if (!T.state.gear[id]) return false;
+  // Equipping the equipped item takes it off.
+  T.state.equippedGear = (T.state.equippedGear === id) ? null : id;
+  T.toast(T.state.equippedGear ? "Equipped " + T.gearById(id).name : "Unequipped gear", "good");
+  T.save(); return true;
+};
+/* Build the card list for gear (armour / attack items). */
+T.gearCards = function (host, onChange) {
+  var s = T.state, rankIdx = T.RANKS.indexOf(T.rankForLevel(s.player.level)) + 1;
+  var grid = el("div", "cards");
+  T.GEAR.forEach(function (g) {
+    var owned = !!s.gear[g.id], on = s.equippedGear === g.id;
+    var card = el("div", "card" + (on ? " card--hi" : ""));
+    var bonus = (g.atk ? "+" + g.atk + " ⚔️" : "") + (g.atk && g.def ? " · " : "") + (g.def ? "+" + g.def + " 🛡️" : "");
+    card.innerHTML = "<h4>🧥 " + g.name + "</h4>" +
+      "<div class='muted small'>" + bonus + "</div>" +
+      "<div class='muted small'>" + g.desc + "</div>";
+    var row = el("div", "row");
+    if (!owned) {
+      var buy = el("button", "btn", "Buy " + T.money(g.cost * T.pack().priceScale));
+      buy.disabled = rankIdx < g.minRank || s.player.cash < g.cost * T.pack().priceScale;
+      if (rankIdx < g.minRank) buy.title = "Rank " + g.minRank;
+      buy.onclick = function () { if (T.buyGear(g)) onChange(); };
+      row.appendChild(buy);
+    } else {
+      var eq = el("button", "btn" + (on ? " btn--ghost" : ""), on ? "Equipped — take off" : "Equip");
+      eq.onclick = function () { if (T.equipGear(g.id)) onChange(); };
+      row.appendChild(eq);
+    }
+    card.appendChild(row);
+    if (!owned && rankIdx < g.minRank) card.classList.add("card--locked");
+    grid.appendChild(card);
+  });
+  host.appendChild(grid);
 };
 /* Build the card list for weapons — reused by Empire tab and the street shop. */
 T.weaponCards = function (host, onChange) {
@@ -1028,10 +1088,18 @@ T.weaponCards = function (host, onChange) {
 };
 
 T.empire.tabArsenal = function (body) {
-  body.appendChild(el("p", "muted", "Your arsenal. Melee is always ready; guns unlock by rank. The weapon you equip adds to your strength in the Fight tab and in turf wars."));
-  var eqW = T.weaponById(T.state.equipped);
-  body.appendChild(el("div", "kpi", "Equipped: <strong>" + eqW.name + "</strong>" + (eqW.type === "gun" ? " · ammo " + (T.state.ammo[eqW.id] || 0) : "")));
-  T.weaponCards(body, function () { T.empire.render(); });
+  var s = T.state, rerender = function () { T.empire.render(); };
+  body.appendChild(el("p", "muted", "Gear up. A weapon boosts your Attack; gear adds Defence (and some adds Attack too). You carry one weapon and one piece of gear at a time."));
+  var eqW = T.weaponById(s.equipped), g = T.empire.gearEquipped();
+  body.appendChild(el("div", "kpi",
+    "⚔️ Attack: <strong>" + T.empire.fightStrength() + "</strong> · 🛡️ Defence: <strong>" + T.empire.playerDefense() + "</strong><br>" +
+    "Weapon: " + eqW.name + " · Gear: " + (g ? g.name : "none")));
+
+  body.appendChild(el("h3", null, "Weapons (Attack)"));
+  T.weaponCards(body, rerender);
+
+  body.appendChild(el("h3", null, "Gear (Defence & Attack)"));
+  T.gearCards(body, rerender);
 };
 
 /* Friends — a local contact list; invites open the player's own email app. */

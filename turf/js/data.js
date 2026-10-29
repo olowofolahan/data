@@ -208,6 +208,20 @@ TURF.WEAPONS = [
 ];
 TURF.weaponById = function (id) { return TURF.WEAPONS.filter(function (w) { return w.id === id; })[0] || TURF.WEAPONS[0]; };
 
+/* -------------------------------------------------------------------------- */
+/* Gear — a second equip slot. Armour adds Defence (cuts damage taken in       */
+/* fights & turf wars); some gear also improves Attack. Unlocks by rank.        */
+/* -------------------------------------------------------------------------- */
+TURF.GEAR = [
+  { id: "vest",     name: "Light vest",      atk: 0,  def: 8,  cost: 1500,  minRank: 1, desc: "Soft armour — takes the edge off a beating." },
+  { id: "knuckles", name: "Brass knuckles",  atk: 10, def: 2,  cost: 1200,  minRank: 1, desc: "Hit harder up close." },
+  { id: "kevlar",   name: "Kevlar vest",     atk: 0,  def: 20, cost: 5000,  minRank: 2, desc: "Serious protection in a firefight." },
+  { id: "dog",      name: "Attack dog",      atk: 12, def: 6,  cost: 3500,  minRank: 2, desc: "Bites first, asks later." },
+  { id: "guard",    name: "Bodyguard",       atk: 6,  def: 18, cost: 8000,  minRank: 3, desc: "A pro who covers your back." },
+  { id: "suv",      name: "Armoured SUV",    atk: 5,  def: 28, cost: 15000, minRank: 4, desc: "Roll heavy, roll safe." }
+];
+TURF.gearById = function (id) { return TURF.GEAR.filter(function (g) { return g.id === id; })[0] || null; };
+
 /* Street missions (linked to Empire jobs via streetMissionId). */
 TURF.MISSIONS = {
   m_cartheft:  { kind: "cartheft",  label: "Boost a car and reach the chop shop" },
