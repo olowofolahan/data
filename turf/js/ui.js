@@ -231,6 +231,26 @@ T.ui.bornAgain = function (name, scripture, onClose) {
 };
 function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
 
+/* ---- Generic choice overlay (title + html + buttons) ------------------- */
+T.ui.choice = function (title, html, options) {
+  var node = el("div");
+  node.appendChild(el("h2", null, title));
+  if (html) { var d = el("div"); d.innerHTML = html; node.appendChild(d); }
+  options.forEach(function (opt) {
+    var cls = "btn btn--big" + (opt.kind === "ghost" ? " btn--ghost" : opt.kind === "danger" ? " btn--danger" : "");
+    var b = el("button", cls, opt.label);
+    b.disabled = !!opt.disabled;
+    if (opt.disabled && opt.disabledTitle) b.title = opt.disabledTitle;
+    b.onclick = function () { back.close(); if (opt.onClick) opt.onClick(); };
+    node.appendChild(b);
+  });
+  var cancel = el("button", "btn btn--ghost btn--big", "Cancel");
+  cancel.onclick = function () { back.close(); };
+  node.appendChild(cancel);
+  var back = overlay(node, true);
+  return back;
+};
+
 /* ---- Clinic (knocked out in an Empire fight) --------------------------- */
 T.ui.clinic = function () {
   var fee = 80 * T.pack().priceScale;

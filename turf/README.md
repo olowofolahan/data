@@ -25,10 +25,14 @@ browser (desktop or mobile) and play.
 One state store (`localStorage` save, with export/import codes) drives the
 Empire dashboard.
 
-- **Jobs** with tiers unlocked by rank, including the high-risk **Political
-  thug** sabotage job — swing an election for your backer for a big payout, but
-  it can **backfire** (a property is seized, Respect drops). Crew and low Heat
-  improve the odds.
+- **Jobs** with tiers unlocked by rank (above-rank jobs show as locked cards so
+  you can see what's coming), including two specials:
+  - **Political thug** — swing an election for your backer for a big payout, but
+    it can **backfire** (a property is seized, Respect drops). Crew and low Heat
+    improve the odds.
+  - **Bribe a local cop** — pay a cop to **cool your Heat (−60%)**, or **sic them
+    on a rival crew** (the cops raid a rival-held district and cut their control,
+    sometimes clearing it for you to take).
 - **Crew** (4 roles, loyalty, wages, district assignment) — gift, **raise wages
   to boost loyalty**, or **fire** a member.
 - **Properties** (buy/upgrade, timed income), **Districts** (0–100% control,

@@ -51,6 +51,7 @@ TURF.JOBS = [
   { id: "j_boost",     tier: 0, name: "Boost a parked car",   energy: 3,  cashMin: 80,   cashMax: 160,  xp: 12, heat: 8,  streetMissionId: "m_cartheft" },
   { id: "j_deliver",   tier: 1, name: "Run a package",        energy: 4,  cashMin: 140,  cashMax: 240,  xp: 18, heat: 6,  streetMissionId: "m_delivery", requires: { crew: 0 } },
   { id: "j_fuelrun",   tier: 1, name: "Fuel run",             energy: 4,  cashMin: 160,  cashMax: 260,  xp: 20, heat: 7 },
+  { id: "j_bribecop",  tier: 1, name: "Bribe a local cop",    energy: 3,  cashMin: 0,    cashMax: 0,    xp: 12, heat: 0,  special: "bribe" },
   { id: "j_collect",   tier: 2, name: "Collect protection",   energy: 5,  cashMin: 220,  cashMax: 380,  xp: 28, heat: 10, streetMissionId: "m_collection" },
   { id: "j_enforce",   tier: 2, name: "Lean on a debtor",     energy: 5,  cashMin: 260,  cashMax: 420,  xp: 30, heat: 14 },
   { id: "j_turf",      tier: 2, name: "Clear a block",        energy: 6,  cashMin: 300,  cashMax: 520,  xp: 40, heat: 18, streetMissionId: "m_turf", requires: { crew: 1 } },

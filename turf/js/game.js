@@ -525,15 +525,19 @@ T.empire.tabJobs = function (body) {
       ? "<div class='muted small risk'>🔒 Unlocks at " + T.RANKS[job.tier].name + " (level " + T.RANKS[job.tier].min + ")</div>"
       : (job.special === "sabotage"
           ? "<div class='muted small risk'>High risk: sabotage a rival politician so your backer pays more — but it can backfire (lose a property + Respect).</div>"
+          : job.special === "bribe"
+          ? "<div class='muted small'>Pay a cop to cool your Heat, or sic them on a rival crew.</div>"
           : "<div class='muted small'>Done " + mastery + "×" + (mastery >= 5 ? " ★ mastered" : "") + "</div>");
+    var payStr = job.special === "bribe" ? "💵 costs cash"
+      : T.money(job.cashMin * T.pack().priceScale) + "–" + T.money(job.cashMax * T.pack().priceScale);
     card.innerHTML =
-      "<h4>" + job.name + (job.special === "sabotage" ? " ⚠️" : "") + (job.nightOnly ? " 🌙" : "") + "</h4>" +
+      "<h4>" + job.name + (job.special === "sabotage" ? " ⚠️" : "") + (job.special === "bribe" ? " 👮" : "") + (job.nightOnly ? " 🌙" : "") + "</h4>" +
       "<div class='row'><span>⚡ " + job.energy + "</span>" +
-      "<span>" + T.money(job.cashMin * T.pack().priceScale) + "–" + T.money(job.cashMax * T.pack().priceScale) + "</span></div>" +
+      "<span>" + payStr + "</span></div>" +
       "<div class='row muted'><span>+" + job.xp + " XP</span><span>+Heat " + job.heat + "</span></div>" +
       note;
     var btns = el("div", "row");
-    var go = el("button", "btn", job.special === "sabotage" ? "Run the job" : "Do job");
+    var go = el("button", "btn", job.special === "sabotage" ? "Run the job" : job.special === "bribe" ? "Bribe a cop" : "Do job");
     go.disabled = locked; if (locked) go.title = reason;
     go.onclick = function () { T.empire.doJob(job); };
     btns.appendChild(go);
@@ -548,6 +552,7 @@ T.empire.doJob = function (job) {
   var s = T.state;
   if (s.resources.energy < job.energy) { T.toast("Not enough energy", "warn"); return; }
   if (job.special === "sabotage") { T.empire.politicalThug(job); return; }
+  if (job.special === "bribe") { T.empire.bribeCop(job); return; }
   s.resources.energy -= job.energy;
   var pay = randint(job.cashMin, job.cashMax) * T.pack().priceScale;
   if (s.bonusNextJob) { pay = Math.round(pay * (1 + s.bonusNextJob)); s.bonusNextJob = 0; T.toast("Hot tip paid off!", "good"); }
@@ -615,6 +620,58 @@ T.empire.politicalThug = function (job) {
       "Damn", function () { T.save(); T.empire.render(); });
   }
   T.save();
+};
+
+/* Bribe a local cop: pay to cool your Heat, or point them at a rival crew. */
+T.empire.bribeCop = function (job) {
+  var s = T.state, scale = T.pack().priceScale, pk = T.pack();
+  var heatCost = Math.round(20 + s.player.heat * 4) * scale;
+  var rivalCost = Math.round(250 + s.player.level * 20) * scale;
+  var rivalHeld = Object.keys(s.districts).filter(function (id) {
+    return s.districts[id].owner && s.districts[id].owner !== "player";
+  });
+  var canHeat = s.player.heat >= 10 && s.player.cash >= heatCost;
+  var canRival = rivalHeld.length > 0 && s.player.cash >= rivalCost;
+
+  var html = "<p class='muted'>Slip a cop some naira. Current Heat: <strong>" + Math.round(s.player.heat) +
+    "%</strong>. Costs " + job.energy + " energy.</p>";
+
+  T.ui.choice("👮 Bribe a local cop", html, [
+    {
+      label: s.player.heat < 10 ? "Cool my Heat — not needed" : "Cool my Heat (−60%) — " + T.money(heatCost),
+      disabled: !canHeat,
+      disabledTitle: s.player.heat < 10 ? "Heat already low" : "Can't afford it",
+      onClick: function () {
+        s.resources.energy -= job.energy; s.player.cash -= heatCost;
+        var before = s.player.heat;
+        s.player.heat = clamp(s.player.heat - 60, 0, 100);
+        T.sim.addXp(job.xp); s.stats.jobsDone++;
+        T.toast("Cop looked the other way — Heat down " + Math.round(before - s.player.heat), "good");
+        T.save(); T.empire.render();
+      }
+    },
+    {
+      label: rivalHeld.length ? "Sic them on a rival crew — " + T.money(rivalCost) : "Sic them on a rival — no rival turf",
+      kind: "ghost",
+      disabled: !canRival,
+      disabledTitle: rivalHeld.length ? "Can't afford it" : "No rival-held districts",
+      onClick: function () {
+        s.resources.energy -= job.energy; s.player.cash -= rivalCost;
+        rivalHeld.sort(function (a, b) { return s.districts[b].control - s.districts[a].control; });
+        var tgt = rivalHeld[0], st = s.districts[tgt];
+        var meta = pk.districts.filter(function (d) { return d.id === tgt; })[0];
+        var rivalName = (pk.rivals.filter(function (r) { return r.id === st.owner; })[0] || { name: "a rival" }).name;
+        var drop = randint(25, 45), msg;
+        st.control = clamp(st.control - drop, 0, 100);
+        if (st.control <= 0) { st.owner = null; st.control = randint(0, 20); msg = "The cops ran " + rivalName + " out of <strong>" + meta.name + "</strong> — it's unclaimed now, so move in and take it."; }
+        else msg = "The cops raided " + rivalName + " in <strong>" + meta.name + "</strong>, cutting their hold by " + drop + "%.";
+        s.player.respect += 10;
+        s.player.heat = clamp(s.player.heat + 5, 0, 100); // you were seen pulling strings
+        T.sim.addXp(job.xp); s.stats.jobsDone++;
+        T.ui.screen("Cops moved in", msg + " (+10 Respect)", "Good", function () { T.save(); T.empire.render(); });
+      }
+    }
+  ]);
 };
 
 T.empire.tabCrew = function (body) {
