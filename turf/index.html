@@ -13,10 +13,7 @@
   <div class="topbar">
     <div class="brand">TU<span>RF</span></div>
     <div class="spacer"></div>
-    <div class="modebtns">
-      <button class="modebtn" id="to-empire">Empire</button>
-      <button class="modebtn" id="to-street">Street</button>
-    </div>
+    <div class="muted small" id="topbar-city"></div>
   </div>
 
   <!-- Main -->
@@ -53,35 +50,6 @@
       <div class="emp-body" id="emp-body"></div>
     </div>
 
-    <!-- Street mode -->
-    <div id="street" style="display:none">
-      <div class="canvas-wrap"><canvas id="game-canvas"></canvas></div>
-      <div class="street-hud">
-        <div class="hud-tl">
-          <div class="hud-chip">Cash <span id="sh-cash">—</span></div>
-          <div class="hpbar-wrap"><div class="hpbar" id="sh-hpbar"></div></div>
-          <div class="hud-chip" id="sh-weapon">🥊 Fists</div>
-          <div class="hud-chip" id="sh-shophint" style="display:none">Press <b>B</b> to shop</div>
-        </div>
-        <div class="hud-tr">
-          <div class="hud-chip hud-stars" id="sh-stars">☆☆☆☆☆</div>
-          <div class="hud-chip" id="sh-clock" style="margin-top:6px">—</div>
-        </div>
-        <div class="mission-banner" id="sh-mission" style="display:none"></div>
-        <canvas id="minimap" width="150" height="128"></canvas>
-        <div class="hint">WASD move · <b>E</b> car · <b>Space</b> attack · <b>Q</b> switch weapon · <b>B</b> gun shop (grey spot) · heal/respray/sell at the coloured spots</div>
-      </div>
-      <div class="touch-controls">
-        <div id="joy"><div id="joy-knob"></div></div>
-        <div class="street-btns">
-          <button class="cbtn" id="btn-shop" style="display:none">Shop</button>
-          <button class="cbtn" id="btn-weapon">Wpn</button>
-          <button class="cbtn" id="btn-enter">Car</button>
-          <button class="cbtn" id="btn-action">Hit</button>
-        </div>
-      </div>
-    </div>
-
   </div>
 </div>
 
@@ -96,7 +64,6 @@
 
 <script src="js/data.js"></script>
 <script src="js/game.js"></script>
-<script src="js/street.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/main.js"></script>
 </body>

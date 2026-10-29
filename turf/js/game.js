@@ -1,13 +1,12 @@
 /* ==========================================================================
  * Turf — engine
  * --------------------------------------------------------------------------
- * A no-build, single-page implementation of the Turf design. Two modes share
- * one state store:
- *   - Empire mode : a DOM dashboard (jobs, crew, properties, districts, fight)
- *   - Street mode : a top-down canvas city (walk, steal & drive cars, police,
- *                   Heat, and the five street-mission types)
+ * A no-build, single-page implementation of the Turf design: an Empire-mode
+ * DOM dashboard (jobs incl. the risky political-thug sabotage, crew, properties,
+ * districts & turf wars, rival fights, arsenal, friends/email invites).
  * Sim systems (clock, energy/stamina regen, offline progress, weekly upkeep,
- * random events, Heat/Respect/Loyalty) run regardless of mode.
+ * random events incl. born-again convert visits, Heat/Respect/Loyalty) run on
+ * a one-second heartbeat.
  * The in-game ad system (billboards + flyers, parody fallback, tracking) is
  * wired through TURF.ads.
  * ========================================================================== */
@@ -72,6 +71,8 @@ T.newGame = function (country, name, look) {
     inventory: { items: [], flyers: [] },
     weapons: { fist: true }, ammo: {}, equipped: "fist",
     converts: 0,
+    friends: [],
+    lastConvertVisit: t, lastFlyerVisit: t,
     flyersToday: 0, lastFlyerDay: 0,
     premium: false,
     gameMinutes: 8 * 60,          // start at 08:00 on day 0
@@ -112,6 +113,9 @@ T.ensureDefaults = function () {
   if (!s.ammo) s.ammo = {};
   if (!s.equipped || !s.weapons[s.equipped]) s.equipped = "fist";
   if (s.converts == null) s.converts = 0;
+  if (!s.friends) s.friends = [];
+  if (s.lastConvertVisit == null) s.lastConvertVisit = now();
+  if (s.lastFlyerVisit == null) s.lastFlyerVisit = now();
   // Energy bar is now 100 (refills 40/hour). Lift older saves to the new cap.
   if (s.resources && s.resources.energyMax < 100) {
     s.resources.energyMax = 100;
@@ -377,12 +381,29 @@ setInterval(function () { T.ads.flush(); }, 60 * 1000);
 /* ====================== game controller ================================== */
 T.game = { mode: "empire", raf: null };
 
-T.game.setMode = function (mode) {
-  T.game.mode = mode;
-  $("#empire").style.display = mode === "empire" ? "" : "none";
-  $("#street").style.display = mode === "street" ? "" : "none";
-  if (mode === "empire") { T.empire.render(); }
-  if (mode === "street") { T.street.onShow(); }
+/* Street mode was removed — the game is the Empire dashboard only. setMode is
+ * kept as a thin no-op shim so older call sites stay valid. */
+T.game.setMode = function () { T.game.mode = "empire"; T.empire.render(); };
+
+/* Ambient Empire visitors: a born-again convert quoting Scripture (the
+ * Pastor's flock, now that there's no street to roam), and the odd rewarded
+ * flyer. Both are gated by cooldowns and skipped while an overlay is open. */
+T.game.ambientVisits = function () {
+  if (T.ui._anyOverlay && T.ui._anyOverlay()) return;
+  var s = T.state, t = now();
+  // Convert visit: no sooner than every 3 min, ~2% chance per check.
+  if (t - s.lastConvertVisit > 180 * 1000 && Math.random() < 0.02) {
+    s.lastConvertVisit = t;
+    var name = T.pack().npcNames[Math.floor(Math.random() * T.pack().npcNames.length)];
+    var scr = T.SCRIPTURES[Math.floor(Math.random() * T.SCRIPTURES.length)];
+    T.ui.bornAgain(name, scr);
+    return;
+  }
+  // Flyer visit: no sooner than every 4 min, ~1.5% chance; respects the daily cap.
+  if (t - s.lastFlyerVisit > 240 * 1000 && Math.random() < 0.015) {
+    s.lastFlyerVisit = t;
+    T.ui.flyer(T.ads.pick("flyer", null, "empire_flyer"), false);
+  }
 };
 
 /* One-second sim heartbeat (runs in any mode). */
@@ -404,6 +425,7 @@ T.game.heartbeat = function () {
     var ev = T.sim.rollEvent();
     if (ev) T.ui.event(ev);
     if (T.sim.upkeepDue()) T.ui.upkeep();
+    T.game.ambientVisits();
     T.empire.refreshHeader();
   }
   T.save();
@@ -425,6 +447,7 @@ T.empire.refreshHeader = function () {
   set("#hd-respect", Math.floor(s.player.respect));
   set("#hd-heat", Math.floor(s.player.heat) + "%");
   set("#hd-clock", T.sim.clockStr() + (T.sim.isNight() ? " 🌙" : " ☀️") + " · Day " + (T.sim.gameDay() + 1));
+  var city = $("#topbar-city"); if (city) city.textContent = T.pack().city + " · " + T.pack().country;
   var xpbar = $("#hd-xpbar"); if (xpbar) xpbar.style.width = clamp((s.player.xp / need) * 100, 0, 100) + "%";
   var heatbar = $("#hd-heatbar"); if (heatbar) heatbar.style.width = s.player.heat + "%";
   // banner ad
@@ -447,7 +470,7 @@ T.empire.render = function () {
   tabs.innerHTML = "";
   var defs = [["jobs", "Jobs"], ["crew", "Crew"], ["properties", "Properties"],
               ["districts", "Districts"], ["fight", "Fight"], ["arsenal", "Arsenal"],
-              ["inventory", "Inventory"], ["profile", "Profile"]];
+              ["friends", "Friends"], ["inventory", "Inventory"], ["profile", "Profile"]];
   defs.forEach(function (d) {
     var b = el("button", "tab" + (T.empire.tab === d[0] ? " tab--on" : ""), d[1]);
     b.onclick = function () { T.empire.tab = d[0]; T.empire.render(); };
@@ -457,12 +480,13 @@ T.empire.render = function () {
   body.innerHTML = "";
   ({ jobs: T.empire.tabJobs, crew: T.empire.tabCrew, properties: T.empire.tabProps,
      districts: T.empire.tabDistricts, fight: T.empire.tabFight, arsenal: T.empire.tabArsenal,
+     friends: T.empire.tabFriends,
      inventory: T.empire.tabInventory, profile: T.empire.tabProfile })[T.empire.tab](body);
 };
 
 T.empire.tabJobs = function (body) {
   var s = T.state, rankIdx = T.RANKS.indexOf(T.rankForLevel(s.player.level));
-  var intro = el("p", "muted", "Jobs cost energy and pay cash + XP. Some open as a Street mission for a bigger payout.");
+  var intro = el("p", "muted", "Jobs cost energy and pay cash + XP. Watch Heat, and try the high-risk Political thug job for a big score.");
   body.appendChild(intro);
   var grid = el("div", "cards");
   T.JOBS.forEach(function (job) {
@@ -474,22 +498,18 @@ T.empire.tabJobs = function (body) {
     var card = el("div", "card");
     var mastery = s.stats.mastery[job.id] || 0;
     card.innerHTML =
-      "<h4>" + job.name + "</h4>" +
+      "<h4>" + job.name + (job.special === "sabotage" ? " ⚠️" : "") + "</h4>" +
       "<div class='row'><span>⚡ " + job.energy + "</span>" +
       "<span>" + T.money(job.cashMin * T.pack().priceScale) + "–" + T.money(job.cashMax * T.pack().priceScale) + "</span></div>" +
       "<div class='row muted'><span>+" + job.xp + " XP</span><span>+Heat " + job.heat + "</span></div>" +
-      "<div class='muted small'>Done " + mastery + "×" + (mastery >= 5 ? " ★ mastered" : "") + "</div>";
+      (job.special === "sabotage"
+        ? "<div class='muted small risk'>High risk: sabotage a rival politician so your backer pays more — but it can backfire (lose a property + Respect).</div>"
+        : "<div class='muted small'>Done " + mastery + "×" + (mastery >= 5 ? " ★ mastered" : "") + "</div>");
     var btns = el("div", "row");
-    var go = el("button", "btn", "Do job");
+    var go = el("button", "btn", job.special === "sabotage" ? "Run the job" : "Do job");
     go.disabled = locked; if (locked) go.title = reason;
     go.onclick = function () { T.empire.doJob(job); };
     btns.appendChild(go);
-    if (job.streetMissionId) {
-      var diy = el("button", "btn btn--ghost", "Do it yourself");
-      diy.disabled = s.resources.energy < job.energy;
-      diy.onclick = function () { T.street.startMission(job.streetMissionId, job); };
-      btns.appendChild(diy);
-    }
     card.appendChild(btns);
     if (locked) card.classList.add("card--locked");
     grid.appendChild(card);
@@ -500,6 +520,7 @@ T.empire.tabJobs = function (body) {
 T.empire.doJob = function (job) {
   var s = T.state;
   if (s.resources.energy < job.energy) { T.toast("Not enough energy", "warn"); return; }
+  if (job.special === "sabotage") { T.empire.politicalThug(job); return; }
   s.resources.energy -= job.energy;
   var pay = randint(job.cashMin, job.cashMax) * T.pack().priceScale;
   if (s.bonusNextJob) { pay = Math.round(pay * (1 + s.bonusNextJob)); s.bonusNextJob = 0; T.toast("Hot tip paid off!", "good"); }
@@ -522,6 +543,51 @@ T.empire.doJob = function (job) {
   T.toast("+" + T.money(pay) + " · +" + job.xp + " XP", "good");
   T.save();
   T.empire.render();
+};
+
+/* Political thug: sabotage a rival politician so your backer pays more.
+ * High-risk — it can backfire: a raid shuts (and you forfeit) a property and
+ * your Respect takes a hit. Crew and low Heat improve your odds. */
+T.empire.politicalThug = function (job) {
+  var s = T.state;
+  s.resources.energy -= job.energy;
+  // Base 58% success; Muscle & Fixer help, high Heat hurts.
+  var muscle = s.crew.filter(function (c) { return c.role === "muscle"; }).length;
+  var fixer = s.crew.some(function (c) { return c.role === "fixer"; }) ? 1 : 0;
+  var successChance = clamp(0.58 + muscle * 0.06 + fixer * 0.08 - (s.player.heat / 100) * 0.3, 0.2, 0.9);
+  var heat = s.crew.some(function (c) { return c.role === "hacker"; }) ? Math.round(job.heat * 0.7) : job.heat;
+  s.player.heat = clamp(s.player.heat + heat, 0, 100);
+  s.stats.jobsDone++;
+
+  if (Math.random() < successChance) {
+    var pay = randint(job.cashMin, job.cashMax) * T.pack().priceScale;
+    if (fixer) pay = Math.round(pay * 1.1);
+    s.player.cash += pay;
+    s.player.respect += 30;
+    T.sim.addXp(job.xp);
+    T.ui.screen("Sabotage paid off",
+      "Your rival's campaign fell apart. Your backer paid out <strong>" + T.money(pay) + "</strong> and your name carries more weight (+30 Respect).",
+      "Nice", function () { T.save(); T.empire.render(); });
+  } else {
+    // Backfire: lose a property if you own one, else a cash fine; always Respect.
+    var lostMsg;
+    if (s.properties.length) {
+      var idx = randint(0, s.properties.length - 1);
+      var tpl = T.PROPERTIES.filter(function (x) { return x.id === s.properties[idx].tplId; })[0];
+      s.properties.splice(idx, 1);
+      lostMsg = "The authorities raided and seized your <strong>" + (tpl ? tpl.name : "front") + "</strong>.";
+    } else {
+      var fine = Math.min(s.player.cash, randint(400, 900) * T.pack().priceScale);
+      s.player.cash -= fine;
+      lostMsg = "You paid <strong>" + T.money(fine) + "</strong> to make the problem disappear.";
+    }
+    s.player.respect = Math.max(0, s.player.respect - 25);
+    s.player.heat = clamp(s.player.heat + 15, 0, 100);
+    T.ui.screen("It backfired",
+      "Your rival turned the tables. " + lostMsg + " Your reputation took a hit (-25 Respect).",
+      "Damn", function () { T.save(); T.empire.render(); });
+  }
+  T.save();
 };
 
 T.empire.tabCrew = function (body) {
@@ -679,9 +745,22 @@ T.empire.tabDistricts = function (body) {
         T.save(); T.empire.render();
       };
       card.appendChild(push);
-      var war = el("button", "btn btn--ghost", "Turf war (fight it)");
+      var war = el("button", "btn btn--ghost", "Turf war (3 stamina)");
       war.disabled = s.resources.stamina < 3;
-      war.onclick = function () { T.street.startMission("m_turf", { districtId: d.id, name: "Turf war: " + d.name }); };
+      war.onclick = function () {
+        s.resources.stamina -= 3;
+        var strength = T.empire.fightStrength();
+        var resist = 15 + d.danger * 6 + s.player.level * 2;
+        var gain = clamp(Math.round((strength - resist) / 2) + randint(10, 25), 6, 60);
+        st.control = clamp(st.control + gain, 0, 100);
+        s.player.heat = clamp(s.player.heat + 8, 0, 100);
+        s.resources.health = clamp(s.resources.health - randint(5, 20), 0, s.resources.healthMax);
+        T.sim.addXp(18);
+        if (st.control >= 100) { st.owner = "player"; st.control = 100; s.player.respect += 40; T.toast("Won the turf war for " + d.name + "!", "good"); }
+        else T.toast("Turf war: " + d.name + " control +" + gain + "%", "good");
+        if (s.resources.health <= 0) T.ui.clinic();
+        T.save(); T.empire.render();
+      };
       card.appendChild(war);
     }
     list.appendChild(card);
@@ -689,11 +768,20 @@ T.empire.tabDistricts = function (body) {
   body.appendChild(list);
 };
 
+/* Combat strength = base + crew attack + level + the equipped weapon. */
+T.empire.fightStrength = function () {
+  var s = T.state;
+  var w = T.weaponById(s.equipped);
+  var wb = Math.round((w.damage || 0) / 3) + (w.type === "gun" ? 6 : 0);
+  return 10 + s.crew.reduce(function (a, c) { return a + c.attack; }, 0) + s.player.level * 2 + wb;
+};
+
 T.empire.tabFight = function (body) {
   var s = T.state, pk = T.pack();
-  body.appendChild(el("p", "muted", "Attack a rival crew. Outcome = your attack+crew vs their defence, plus a little luck. Costs stamina."));
-  var myAtk = 10 + s.crew.reduce(function (a, c) { return a + c.attack; }, 0) + s.player.level * 2;
-  body.appendChild(el("div", "kpi", "Your strength: <strong>" + myAtk + "</strong> · Stamina " + Math.floor(s.resources.stamina) + "/" + s.resources.staminaMax));
+  body.appendChild(el("p", "muted", "Attack a rival crew. Outcome = your strength (crew + rank + equipped weapon) vs their defence, plus a little luck. Costs stamina."));
+  var myAtk = T.empire.fightStrength();
+  var w = T.weaponById(s.equipped);
+  body.appendChild(el("div", "kpi", "Your strength: <strong>" + myAtk + "</strong> · Weapon: " + w.name + " · Stamina " + Math.floor(s.resources.stamina) + "/" + s.resources.staminaMax));
   var list = el("div", "cards");
   pk.rivals.forEach(function (r, i) {
     var def = 12 + i * 10 + s.player.level * 2;
@@ -724,7 +812,7 @@ T.empire.tabFight = function (body) {
   body.appendChild(list);
 };
 
-/* Shared weapon helpers (used by the Arsenal tab and the street gun shop). */
+/* Shared weapon helpers (used by the Arsenal tab). */
 T.buyWeapon = function (w) {
   var s = T.state, cost = w.cost * T.pack().priceScale;
   if (s.weapons[w.id]) return false;
@@ -754,12 +842,10 @@ T.weaponCards = function (host, onChange) {
   T.WEAPONS.forEach(function (w) {
     var owned = !!s.weapons[w.id];
     var card = el("div", "card" + (s.equipped === w.id ? " card--hi" : ""));
-    var stats = w.type === "gun"
-      ? ("DMG " + w.damage + (w.pellets > 1 ? "×" + w.pellets : "") + " · range " + w.range + " · clip " + w.clip)
-      : ("DMG " + w.damage + " · range " + w.range + " · melee");
+    var power = Math.round((w.damage || 0) / 3) + (w.type === "gun" ? 6 : 0);
+    var stats = (w.type === "gun" ? "firearm" : "melee") + " · +" + power + " strength · +Heat " + w.heat;
     card.innerHTML = "<h4>" + w.name + (w.type === "gun" ? " 🔫" : " 🥊") + "</h4>" +
-      "<div class='muted small'>" + stats + " · +Heat " + w.heat + "</div>" +
-      (owned && w.type === "gun" ? "<div class='small'>Ammo: <strong>" + (s.ammo[w.id] || 0) + "</strong></div>" : "");
+      "<div class='muted small'>" + stats + "</div>";
     var row = el("div", "row");
     if (!owned) {
       var buy = el("button", "btn", w.cost ? "Buy " + T.money(w.cost * T.pack().priceScale) : "Owned");
@@ -773,12 +859,6 @@ T.weaponCards = function (host, onChange) {
       eq.disabled = s.equipped === w.id;
       eq.onclick = function () { if (T.equipWeapon(w.id)) onChange(); };
       row.appendChild(eq);
-      if (w.type === "gun") {
-        var ammo = el("button", "btn btn--ghost", "Ammo " + T.money(w.ammoCost * T.pack().priceScale));
-        ammo.disabled = s.player.cash < w.ammoCost * T.pack().priceScale;
-        ammo.onclick = function () { if (T.buyAmmo(w)) onChange(); };
-        row.appendChild(ammo);
-      }
     }
     card.appendChild(row);
     if (!owned && rankIdx < w.minRank) card.classList.add("card--locked");
@@ -788,24 +868,103 @@ T.weaponCards = function (host, onChange) {
 };
 
 T.empire.tabArsenal = function (body) {
-  body.appendChild(el("p", "muted", "Your arsenal. Melee is always ready; guns unlock by rank, need ammo, and make a lot more noise (Heat). Equip here, then fire with Space (or the Hit button) in Street mode."));
+  body.appendChild(el("p", "muted", "Your arsenal. Melee is always ready; guns unlock by rank. The weapon you equip adds to your strength in the Fight tab and in turf wars."));
   var eqW = T.weaponById(T.state.equipped);
   body.appendChild(el("div", "kpi", "Equipped: <strong>" + eqW.name + "</strong>" + (eqW.type === "gun" ? " · ammo " + (T.state.ammo[eqW.id] || 0) : "")));
   T.weaponCards(body, function () { T.empire.render(); });
 };
 
+/* Friends — a local contact list; invites open the player's own email app. */
+T.empire.validEmail = function (e) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e); };
+T.empire.inviteLink = function () {
+  try { return window.location.href.split("#")[0]; } catch (e) { return "https://claude.ai"; }
+};
+T.empire.inviteFriend = function (friend) {
+  var s = T.state, link = T.empire.inviteLink();
+  var subject = "Come run with my crew in Turf";
+  var body = "Hey " + (friend.name || "") + ",\n\n" +
+    s.player.name + " here. I'm building a syndicate in Turf (a top-down crime sim you play in the browser) in " +
+    T.pack().city + ". Come start your own crew and let's see who takes the city.\n\nPlay here: " + link +
+    "\n\nSee you on the streets.\n- " + s.player.name;
+  var href = "mailto:" + encodeURIComponent(friend.email) +
+    "?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body);
+  friend.invited = true; friend.invitedAt = now(); T.save();
+  try { window.location.href = href; } catch (e) { window.open(href, "_blank"); }
+  T.toast("Opening your email app…", "good");
+  T.empire.render();
+};
+T.empire.tabFriends = function (body) {
+  var s = T.state;
+  body.appendChild(el("p", "muted", "Add friends by email and invite them to play. Invites open your own email app with the message ready — nothing is sent from the game itself, and your list is saved on this device."));
+
+  // add form
+  var form = el("div", "card");
+  form.appendChild(el("h4", null, "Add a friend"));
+  var nameIn = el("input", "input"); nameIn.placeholder = "Name (optional)"; nameIn.maxLength = 24;
+  var mailIn = el("input", "input"); mailIn.placeholder = "friend@email.com"; mailIn.type = "email";
+  mailIn.style.marginTop = "8px";
+  form.appendChild(nameIn); form.appendChild(mailIn);
+  var add = el("button", "btn", "Add friend");
+  add.style.marginTop = "8px";
+  add.onclick = function () {
+    var email = (mailIn.value || "").trim().toLowerCase();
+    if (!T.empire.validEmail(email)) { T.toast("Enter a valid email", "warn"); return; }
+    if (s.friends.some(function (f) { return f.email === email; })) { T.toast("Already in your friends", "warn"); return; }
+    s.friends.push({ id: "f_" + Math.random().toString(36).slice(2, 7), name: (nameIn.value || "").trim(), email: email, invited: false, addedAt: now() });
+    T.toast("Friend added", "good"); T.save(); T.empire.render();
+  };
+  form.appendChild(add);
+  body.appendChild(form);
+
+  body.appendChild(el("h3", null, "Your friends (" + s.friends.length + ")"));
+  if (!s.friends.length) { body.appendChild(el("p", "muted", "No friends yet. Add one above and send an invite.")); return; }
+
+  var list = el("div", "cards");
+  s.friends.forEach(function (f) {
+    var card = el("div", "card");
+    card.innerHTML = "<h4>" + (f.name || f.email) + "</h4>" +
+      "<div class='muted small'>" + f.email + (f.invited ? " · ✅ invited" : "") + "</div>";
+    var row = el("div", "row");
+    var inv = el("button", "btn", f.invited ? "Invite again" : "Send invite");
+    inv.onclick = function () { T.empire.inviteFriend(f); };
+    var rm = el("button", "btn btn--danger", "Remove");
+    rm.onclick = function () { s.friends = s.friends.filter(function (x) { return x.id !== f.id; }); T.save(); T.empire.render(); };
+    row.appendChild(inv); row.appendChild(rm);
+    card.appendChild(row);
+    list.appendChild(card);
+  });
+  body.appendChild(list);
+
+  // invite everyone not yet invited
+  var pending = s.friends.filter(function (f) { return !f.invited; });
+  if (pending.length > 1) {
+    var all = el("button", "btn btn--ghost", "Email all " + pending.length + " uninvited");
+    all.style.marginTop = "12px";
+    all.onclick = function () {
+      var link = T.empire.inviteLink();
+      var to = pending.map(function (f) { return f.email; }).join(",");
+      var href = "mailto:" + encodeURIComponent(to) + "?subject=" + encodeURIComponent("Come play Turf with me") +
+        "&body=" + encodeURIComponent("Come start a crew in Turf: " + link + "\n- " + s.player.name);
+      pending.forEach(function (f) { f.invited = true; f.invitedAt = now(); });
+      T.save();
+      try { window.location.href = href; } catch (e) { window.open(href, "_blank"); }
+      T.empire.render();
+    };
+    body.appendChild(all);
+  }
+};
+
 T.empire.tabInventory = function (body) {
   var s = T.state;
-  body.appendChild(el("h3", null, "Items"));
-  if (!s.inventory.items.length) body.appendChild(el("p", "muted", "No items. Steal cars in Street mode to sell at the chop shop."));
-  else {
+  if (s.inventory.items && s.inventory.items.length) {
+    body.appendChild(el("h3", null, "Items"));
     var il = el("div", "cards");
     s.inventory.items.forEach(function (it) { il.appendChild(el("div", "card", "<h4>" + it + "</h4>")); });
     body.appendChild(il);
   }
   body.appendChild(el("h3", null, "Flyers (" + s.inventory.flyers.length + ")"));
-  body.appendChild(el("p", "muted", "Flyers you picked up. Tap to view the ad again. Daily reward cap: " + s.flyersToday + "/3."));
-  if (!s.inventory.flyers.length) { body.appendChild(el("p", "muted", "No flyers yet — pick them up in Street mode.")); }
+  body.appendChild(el("p", "muted", "Flyers from ads you've seen. Tap to view again. Daily reward cap: " + s.flyersToday + "/3."));
+  if (!s.inventory.flyers.length) { body.appendChild(el("p", "muted", "No flyers yet — they turn up now and then on your dashboard.")); }
   else {
     var fl = el("div", "cards");
     s.inventory.flyers.forEach(function (f) {

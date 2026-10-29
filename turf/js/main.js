@@ -6,21 +6,9 @@
 var T = window.TURF;
 var $ = function (s) { return document.querySelector(s); };
 
-function wireChrome() {
-  $("#to-empire").onclick = function () { T.game.setMode("empire"); };
-  $("#to-street").onclick = function () {
-    if (T.game.mode === "street" && T.street._S.mission) { T.toast("Finish or fail the mission first", "warn"); return; }
-    T.game.setMode("street");
-  };
-  // "Free roam" entry from street: if no mission, just explore.
-}
-
 function startLoops() {
-  // 1-second sim heartbeat (runs in any mode)
+  // 1-second sim heartbeat
   setInterval(function () { if (T.state) T.game.heartbeat(); }, 1000);
-  // render loop (street mode only draws)
-  function frame(ts) { if (T.state) T.street.frame(ts); requestAnimationFrame(frame); }
-  requestAnimationFrame(frame);
 }
 
 function enterGame(fresh) {
@@ -31,7 +19,6 @@ function enterGame(fresh) {
     var info = T.sim.catchUp();
   }
   T.game._lastTick = Date.now();
-  wireChrome();
   T.game.setMode("empire");
   if (fresh) { T.ui.tutorial(); }
   else { T.ui.welcomeBack(info); }

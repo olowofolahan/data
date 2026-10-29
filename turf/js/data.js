@@ -54,6 +54,7 @@ TURF.JOBS = [
   { id: "j_collect",   tier: 2, name: "Collect protection",   energy: 5,  cashMin: 220,  cashMax: 380,  xp: 28, heat: 10, streetMissionId: "m_collection" },
   { id: "j_enforce",   tier: 2, name: "Lean on a debtor",     energy: 5,  cashMin: 260,  cashMax: 420,  xp: 30, heat: 14 },
   { id: "j_turf",      tier: 2, name: "Clear a block",        energy: 6,  cashMin: 300,  cashMax: 520,  xp: 40, heat: 18, streetMissionId: "m_turf", requires: { crew: 1 } },
+  { id: "j_polthug",   tier: 3, name: "Political thug",       energy: 8,  cashMin: 900,  cashMax: 2200, xp: 70, heat: 20, special: "sabotage" },
   { id: "j_smuggle",   tier: 3, name: "Smuggle goods",        energy: 7,  cashMin: 420,  cashMax: 760,  xp: 55, heat: 16, nightOnly: true },
   { id: "j_gendeal",   tier: 3, name: "Generator deal",       energy: 7,  cashMin: 480,  cashMax: 820,  xp: 60, heat: 12, requires: { crew: 2 } },
   { id: "j_heist",     tier: 4, name: "Warehouse heist",      energy: 10, cashMin: 900,  cashMax: 1600, xp: 120,heat: 28, requires: { crew: 3 }, nightOnly: true },
@@ -205,10 +206,10 @@ TURF.WEAPONS = [
 TURF.weaponById = function (id) { return TURF.WEAPONS.filter(function (w) { return w.id === id; })[0] || TURF.WEAPONS[0]; };
 
 /* -------------------------------------------------------------------------- */
-/* The Pastor & the born-again converts.                                       */
-/*   A pastor roams Street mode preaching; now and then a convert walks up to   */
-/*   the boss to say they're born again and quote Scripture (KJV, public        */
-/*   domain). Light, non-preachy fun — the boss can bless them or wave them off.*/
+/* The born-again converts.                                                    */
+/*   Now and then a reformed gang member visits the boss on the dashboard to    */
+/*   say they're born again and quote Scripture (KJV, public domain). Light,     */
+/*   non-preachy fun — the boss can bless them or wave them off.                */
 /* -------------------------------------------------------------------------- */
 TURF.PASTOR_LINES = [
   "Repent, for the kingdom is near!",

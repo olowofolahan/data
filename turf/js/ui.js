@@ -12,6 +12,8 @@ var T = window.TURF;
 var $ = function (s) { return document.querySelector(s); };
 var el = function (tag, cls, html) { var e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
 T.ui = {};
+/* True while any modal overlay is on screen (used to avoid stacking visits). */
+T.ui._anyOverlay = function () { return !!document.querySelector("#overlays .overlay-back"); };
 
 function overlay(node, dismissable) {
   var host = $("#overlays");
@@ -88,10 +90,10 @@ T.ui.tutorial = function () {
   node.appendChild(el("h2", null, "Welcome to Turf"));
   node.appendChild(el("p", null, "You start broke. Climb from small-time hustler to Kingpin."));
   var steps = el("ul", "tut");
-  ["<strong>Empire mode</strong> (this dashboard): spend <strong>energy</strong> on jobs for cash + XP; hire crew; buy fronts; take districts.",
-   "Tap <strong>“Do it yourself”</strong> on a job to drop into <strong>Street mode</strong> for a bigger payout.",
-   "In the street: <strong>WASD</strong> to move, <strong>E</strong> to steal/enter a car, <strong>Space</strong> to attack. Crimes raise <strong>Heat</strong> (stars) and bring the police.",
-   "Resources refill over real time — check back through the day. Pay your <strong>weekly upkeep</strong> or crew start to leave."
+  ["Spend <strong>energy</strong> on jobs for cash + XP. Energy refills over real time (40 per hour).",
+   "Hire <strong>crew</strong>, buy <strong>properties</strong> for passive income, and take <strong>districts</strong> to 100% control.",
+   "Build an <strong>arsenal</strong> (it boosts your strength in fights) and attack rival gangs in the <strong>Fight</strong> tab.",
+   "Watch your <strong>Heat</strong> and pay the <strong>weekly upkeep</strong>, or crew start to leave. Add <strong>friends</strong> and invite them by email."
   ].forEach(function (s) { steps.appendChild(el("li", null, s)); });
   node.appendChild(steps);
   var go = el("button", "btn btn--big", "Let's go");
@@ -228,6 +230,15 @@ T.ui.bornAgain = function (name, scripture, onClose) {
   var back = overlay(node, false);
 };
 function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
+
+/* ---- Clinic (knocked out in an Empire fight) --------------------------- */
+T.ui.clinic = function () {
+  var fee = 80 * T.pack().priceScale;
+  T.state.player.cash = Math.max(0, T.state.player.cash - fee);
+  T.state.resources.health = T.state.resources.healthMax;
+  T.save();
+  T.ui.screen("Knocked out", "You took a beating and woke up at the clinic. Patched up for " + T.money(fee) + ".", "Continue", function () { if (T.game.mode === "empire") T.empire.render(); });
+};
 
 /* ---- Generic screen (arrested / knocked out) -------------------------- */
 T.ui.screen = function (title, text, btn, cb) {
