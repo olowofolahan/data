@@ -527,17 +527,20 @@ T.empire.tabJobs = function (body) {
           ? "<div class='muted small risk'>High risk: sabotage a rival politician so your backer pays more — but it can backfire (lose a property + Respect).</div>"
           : job.special === "bribe"
           ? "<div class='muted small'>Pay a cop to cool your Heat, or sic them on a rival crew.</div>"
+          : job.special === "whistle"
+          ? "<div class='muted small'>Tip the law on a rival for a fee and chip at their turf — but they may find out.</div>"
           : "<div class='muted small'>Done " + mastery + "×" + (mastery >= 5 ? " ★ mastered" : "") + "</div>");
     var payStr = job.special === "bribe" ? "💵 costs cash"
       : T.money(job.cashMin * T.pack().priceScale) + "–" + T.money(job.cashMax * T.pack().priceScale);
+    var icon = (job.special === "sabotage" ? " ⚠️" : "") + (job.special === "bribe" ? " 👮" : "") + (job.special === "whistle" ? " 📢" : "") + (job.nightOnly ? " 🌙" : "");
     card.innerHTML =
-      "<h4>" + job.name + (job.special === "sabotage" ? " ⚠️" : "") + (job.special === "bribe" ? " 👮" : "") + (job.nightOnly ? " 🌙" : "") + "</h4>" +
+      "<h4>" + job.name + icon + "</h4>" +
       "<div class='row'><span>⚡ " + job.energy + "</span>" +
       "<span>" + payStr + "</span></div>" +
       "<div class='row muted'><span>+" + job.xp + " XP</span><span>+Heat " + job.heat + "</span></div>" +
       note;
     var btns = el("div", "row");
-    var go = el("button", "btn", job.special === "sabotage" ? "Run the job" : job.special === "bribe" ? "Bribe a cop" : "Do job");
+    var go = el("button", "btn", job.special === "sabotage" ? "Run the job" : job.special === "bribe" ? "Bribe a cop" : job.special === "whistle" ? "Whistle-blow" : "Do job");
     go.disabled = locked; if (locked) go.title = reason;
     go.onclick = function () { T.empire.doJob(job); };
     btns.appendChild(go);
@@ -553,6 +556,7 @@ T.empire.doJob = function (job) {
   if (s.resources.energy < job.energy) { T.toast("Not enough energy", "warn"); return; }
   if (job.special === "sabotage") { T.empire.politicalThug(job); return; }
   if (job.special === "bribe") { T.empire.bribeCop(job); return; }
+  if (job.special === "whistle") { T.empire.whistleBlow(job); return; }
   s.resources.energy -= job.energy;
   var pay = randint(job.cashMin, job.cashMax) * T.pack().priceScale;
   if (s.bonusNextJob) { pay = Math.round(pay * (1 + s.bonusNextJob)); s.bonusNextJob = 0; T.toast("Hot tip paid off!", "good"); }
@@ -561,9 +565,10 @@ T.empire.doJob = function (job) {
   s.player.cash += pay;
   T.sim.addXp(job.xp);
   s.player.respect += Math.round(job.xp / 4);
-  // Hacker crew dampens heat.
+  // Hacker crew and political clout dampen heat.
   var heat = job.heat;
   if (s.crew.some(function (c) { return c.role === "hacker"; })) heat = Math.round(heat * 0.7);
+  if (s.equipped === "influence") heat = Math.round(heat * 0.7);
   s.player.heat = clamp(s.player.heat + heat, 0, 100);
   s.stats.jobsDone++;
   s.stats.mastery[job.id] = (s.stats.mastery[job.id] || 0) + 1;
@@ -622,7 +627,18 @@ T.empire.politicalThug = function (job) {
   T.save();
 };
 
-/* Bribe a local cop: pay to cool your Heat, or point them at a rival crew. */
+/* Backfire chance for a bribe. A Fixer crew member and political clout both
+ * make the cop easier to handle. */
+T.empire.bribeRisk = function () {
+  var s = T.state, r = 0.18;
+  if (s.crew.some(function (c) { return c.role === "fixer"; })) r -= 0.08;
+  if (s.equipped === "influence") r -= 0.08;
+  return Math.max(0.05, r);
+};
+
+/* Bribe a local cop: pay to cool your Heat, or point them at a rival crew.
+ * Small chance it backfires — a greedy cop pockets it, or a dirty cop tips the
+ * rival off. */
 T.empire.bribeCop = function (job) {
   var s = T.state, scale = T.pack().priceScale, pk = T.pack();
   var heatCost = Math.round(20 + s.player.heat * 4) * scale;
@@ -633,8 +649,9 @@ T.empire.bribeCop = function (job) {
   var canHeat = s.player.heat >= 10 && s.player.cash >= heatCost;
   var canRival = rivalHeld.length > 0 && s.player.cash >= rivalCost;
 
-  var html = "<p class='muted'>Slip a cop some naira. Current Heat: <strong>" + Math.round(s.player.heat) +
-    "%</strong>. Costs " + job.energy + " energy.</p>";
+  var html = "<p class='muted'>Slip a cop some naira — most take it, but some are greedy or dirty. Current Heat: <strong>" +
+    Math.round(s.player.heat) + "%</strong>. Costs " + job.energy + " energy. Risk of backfire: ~" +
+    Math.round(T.empire.bribeRisk() * 100) + "%.</p>";
 
   T.ui.choice("👮 Bribe a local cop", html, [
     {
@@ -642,10 +659,15 @@ T.empire.bribeCop = function (job) {
       disabled: !canHeat,
       disabledTitle: s.player.heat < 10 ? "Heat already low" : "Can't afford it",
       onClick: function () {
-        s.resources.energy -= job.energy; s.player.cash -= heatCost;
+        s.resources.energy -= job.energy; s.player.cash -= heatCost; s.stats.jobsDone++;
+        if (Math.random() < T.empire.bribeRisk()) {
+          s.player.heat = clamp(s.player.heat + 15, 0, 100);
+          T.ui.screen("Shaken down", "The cop pocketed your " + T.money(heatCost) + " and booked you anyway. Your Heat went up.", "Damn", function () { T.save(); T.empire.render(); });
+          T.save(); return;
+        }
         var before = s.player.heat;
         s.player.heat = clamp(s.player.heat - 60, 0, 100);
-        T.sim.addXp(job.xp); s.stats.jobsDone++;
+        T.sim.addXp(job.xp);
         T.toast("Cop looked the other way — Heat down " + Math.round(before - s.player.heat), "good");
         T.save(); T.empire.render();
       }
@@ -656,22 +678,71 @@ T.empire.bribeCop = function (job) {
       disabled: !canRival,
       disabledTitle: rivalHeld.length ? "Can't afford it" : "No rival-held districts",
       onClick: function () {
-        s.resources.energy -= job.energy; s.player.cash -= rivalCost;
+        s.resources.energy -= job.energy; s.player.cash -= rivalCost; s.stats.jobsDone++;
         rivalHeld.sort(function (a, b) { return s.districts[b].control - s.districts[a].control; });
         var tgt = rivalHeld[0], st = s.districts[tgt];
         var meta = pk.districts.filter(function (d) { return d.id === tgt; })[0];
         var rivalName = (pk.rivals.filter(function (r) { return r.id === st.owner; })[0] || { name: "a rival" }).name;
+        if (Math.random() < T.empire.bribeRisk()) {
+          s.player.heat = clamp(s.player.heat + 10, 0, 100);
+          s.player.respect = Math.max(0, s.player.respect - 5);
+          T.ui.screen("Double-crossed", "The cop was on " + rivalName + "'s payroll. Your " + T.money(rivalCost) + " is gone and now they know you're after them (−5 Respect, Heat up).", "Damn", function () { T.save(); T.empire.render(); });
+          T.save(); return;
+        }
         var drop = randint(25, 45), msg;
         st.control = clamp(st.control - drop, 0, 100);
         if (st.control <= 0) { st.owner = null; st.control = randint(0, 20); msg = "The cops ran " + rivalName + " out of <strong>" + meta.name + "</strong> — it's unclaimed now, so move in and take it."; }
         else msg = "The cops raided " + rivalName + " in <strong>" + meta.name + "</strong>, cutting their hold by " + drop + "%.";
         s.player.respect += 10;
         s.player.heat = clamp(s.player.heat + 5, 0, 100); // you were seen pulling strings
-        T.sim.addXp(job.xp); s.stats.jobsDone++;
+        T.sim.addXp(job.xp);
         T.ui.screen("Cops moved in", msg + " (+10 Respect)", "Good", function () { T.save(); T.empire.render(); });
       }
     }
   ]);
+};
+
+/* Whistle-blow on rivals: tip the authorities for an informant fee and chip at
+ * a rival's turf. Small chance a rival learns you snitched and retaliates. */
+T.empire.whistleBlow = function (job) {
+  var s = T.state, pk = T.pack();
+  s.resources.energy -= job.energy; s.stats.jobsDone++;
+  var fee = randint(job.cashMin, job.cashMax) * pk.priceScale;
+  s.player.cash += fee;
+  T.sim.addXp(job.xp);
+
+  // Prefer a rival-held district; fall back to any non-player district.
+  var targets = Object.keys(s.districts).filter(function (id) { return s.districts[id].owner && s.districts[id].owner !== "player"; });
+  if (!targets.length) targets = Object.keys(s.districts).filter(function (id) { return s.districts[id].owner !== "player"; });
+  if (targets.length) {
+    targets.sort(function (a, b) { return s.districts[b].control - s.districts[a].control; });
+    var st = s.districts[targets[0]];
+    var meta = pk.districts.filter(function (d) { return d.id === targets[0]; })[0];
+    st.control = clamp(st.control - randint(8, 20), 0, 100);
+    if (st.control <= 0 && st.owner) { st.owner = null; st.control = randint(0, 15); }
+    T.toast("Tipped off the law on " + meta.name + " — informant fee " + T.money(fee), "good");
+  } else {
+    T.toast("No rival activity to report. Small fee: " + T.money(fee), "warn");
+  }
+  s.player.respect += 3;
+
+  // Risk: a rival finds out you're an informant and hits your weakest turf.
+  if (Math.random() < 0.2) {
+    var owned = Object.keys(s.districts).filter(function (id) { return s.districts[id].owner === "player"; });
+    if (owned.length) {
+      owned.sort(function (a, b) { return s.districts[a].control - s.districts[b].control; });
+      var d = s.districts[owned[0]], dm = pk.districts.filter(function (x) { return x.id === owned[0]; })[0];
+      var hit = randint(10, 20);
+      d.control = clamp(d.control - hit, 0, 100);
+      d.lastDrop = { rival: "a rival", amount: hit, crew: crewIn(owned[0]), reasons: ["word got out that you informed on them"], at: now() };
+      s.player.respect = Math.max(0, s.player.respect - 5);
+      T.toast("Word got out you snitched — rivals hit " + dm.name + " (-" + hit + "%)", "bad");
+    } else {
+      s.player.heat = clamp(s.player.heat + 10, 0, 100);
+      T.toast("Word got out you snitched — the streets are watching you", "bad");
+    }
+  }
+  T.save(); T.empire.render();
 };
 
 T.empire.tabCrew = function (body) {
@@ -867,11 +938,12 @@ T.empire.tabDistricts = function (body) {
 };
 
 /* Combat strength = base + crew attack + level + the equipped weapon. */
+T.weaponBonus = function (w) {
+  return Math.round((w.damage || 0) / 3) + (w.type === "gun" ? 6 : 0) + (w.type === "influence" ? 10 : 0);
+};
 T.empire.fightStrength = function () {
   var s = T.state;
-  var w = T.weaponById(s.equipped);
-  var wb = Math.round((w.damage || 0) / 3) + (w.type === "gun" ? 6 : 0);
-  return 10 + s.crew.reduce(function (a, c) { return a + c.attack; }, 0) + s.player.level * 2 + wb;
+  return 10 + s.crew.reduce(function (a, c) { return a + c.attack; }, 0) + s.player.level * 2 + T.weaponBonus(T.weaponById(s.equipped));
 };
 
 T.empire.tabFight = function (body) {
@@ -940,9 +1012,12 @@ T.weaponCards = function (host, onChange) {
   T.WEAPONS.forEach(function (w) {
     var owned = !!s.weapons[w.id];
     var card = el("div", "card" + (s.equipped === w.id ? " card--hi" : ""));
-    var power = Math.round((w.damage || 0) / 3) + (w.type === "gun" ? 6 : 0);
-    var stats = (w.type === "gun" ? "firearm" : "melee") + " · +" + power + " strength · +Heat " + w.heat;
-    card.innerHTML = "<h4>" + w.name + (w.type === "gun" ? " 🔫" : " 🥊") + "</h4>" +
+    var power = T.weaponBonus(w);
+    var kindLabel = w.type === "gun" ? "firearm" : w.type === "influence" ? "political clout" : "melee";
+    var icon = w.type === "gun" ? " 🔫" : w.type === "influence" ? " 🏛️" : " 🥊";
+    var extra = w.type === "influence" ? " · lowers job Heat & bribe risk" : "";
+    var stats = kindLabel + " · +" + power + " strength · +Heat " + w.heat + extra;
+    card.innerHTML = "<h4>" + w.name + icon + "</h4>" +
       "<div class='muted small'>" + stats + "</div>";
     var row = el("div", "row");
     if (!owned) {

@@ -47,6 +47,7 @@ TURF.CREW_ROLES = {
 /* -------------------------------------------------------------------------- */
 TURF.JOBS = [
   { id: "j_lookout",   tier: 0, name: "Stand lookout",        energy: 2,  cashMin: 40,   cashMax: 90,   xp: 6,  heat: 2 },
+  { id: "j_whistle",   tier: 0, name: "Whistle-blow on rivals", energy: 2, cashMin: 25,  cashMax: 70,   xp: 10, heat: 0,  special: "whistle" },
   { id: "j_pickpkt",   tier: 0, name: "Pick a pocket",        energy: 2,  cashMin: 30,   cashMax: 120,  xp: 8,  heat: 5 },
   { id: "j_boost",     tier: 0, name: "Boost a parked car",   energy: 3,  cashMin: 80,   cashMax: 160,  xp: 12, heat: 8,  streetMissionId: "m_cartheft" },
   { id: "j_deliver",   tier: 1, name: "Run a package",        energy: 4,  cashMin: 140,  cashMax: 240,  xp: 18, heat: 6,  streetMissionId: "m_delivery", requires: { crew: 0 } },
@@ -202,7 +203,8 @@ TURF.WEAPONS = [
   { id: "machete", name: "Machete",      type: "melee", damage: 58, range: 44,  cooldown: 28, minRank: 2, cost: 900,  heat: 2 },
   { id: "pistol",  name: "Pistol",       type: "gun",   damage: 45, range: 260, cooldown: 16, minRank: 3, cost: 2600, heat: 4, clip: 12, ammoCost: 200, spread: 0.06, pellets: 1 },
   { id: "smg",     name: "SMG",          type: "gun",   damage: 32, range: 240, cooldown: 6,  minRank: 4, cost: 7200, heat: 6, clip: 30, ammoCost: 500, spread: 0.14, pellets: 1 },
-  { id: "shotgun", name: "Shotgun",      type: "gun",   damage: 26, range: 150, cooldown: 34, minRank: 4, cost: 9000, heat: 7, clip: 6,  ammoCost: 400, spread: 0.42, pellets: 6 }
+  { id: "shotgun", name: "Shotgun",      type: "gun",   damage: 26, range: 150, cooldown: 34, minRank: 4, cost: 9000, heat: 7, clip: 6,  ammoCost: 400, spread: 0.42, pellets: 6 },
+  { id: "influence", name: "Political influence", type: "influence", damage: 90, range: 0, cooldown: 0, minRank: 5, cost: 30000, heat: 0 }
 ];
 TURF.weaponById = function (id) { return TURF.WEAPONS.filter(function (w) { return w.id === id; })[0] || TURF.WEAPONS[0]; };
 

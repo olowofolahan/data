@@ -32,16 +32,22 @@ Empire dashboard.
     improve the odds.
   - **Bribe a local cop** — pay a cop to **cool your Heat (−60%)**, or **sic them
     on a rival crew** (the cops raid a rival-held district and cut their control,
-    sometimes clearing it for you to take).
+    sometimes clearing it for you to take). **Small risk it backfires** — a greedy
+    cop pockets the money, or a dirty one tips the rival off (a Fixer or political
+    clout lowers the odds).
+  - **Whistle-blow on rivals** (available from the start) — tip the law for an
+    informant fee and chip at a rival's turf, with a small chance a rival learns
+    you snitched and retaliates.
 - **Crew** (4 roles, loyalty, wages, district assignment) — gift, **raise wages
   to boost loyalty**, or **fire** a member.
 - **Properties** (buy/upgrade, timed income), **Districts** (0–100% control,
   takeover, and **turf wars** resolved with your strength). When a district is
   slipping, the card and the alert **tell you why** (which rival raided it, no
   crew defending, high-danger area, high Heat). **Fight** (attack rival gangs).
-- **Arsenal:** buy & equip melee (fists → bat → machete) and firearms (pistol →
-  SMG → shotgun), unlocked by rank. The equipped weapon **adds to your strength**
-  in fights and turf wars.
+- **Arsenal:** buy & equip melee (fists → bat → machete), firearms (pistol → SMG
+  → shotgun) and, at Kingpin, **Political influence** — a "weapon" of pure clout
+  that gives the biggest strength bonus and also **lowers your job Heat and bribe
+  risk**. The equipped weapon adds to your strength in fights and turf wars.
 - **Friends:** add friends by email and **invite them by email** — the invite
   opens your own mail app with the message and game link ready (the list is saved
   on your device).
