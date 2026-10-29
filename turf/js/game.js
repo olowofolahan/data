@@ -509,21 +509,29 @@ T.empire.tabJobs = function (body) {
   body.appendChild(intro);
   var grid = el("div", "cards");
   T.JOBS.forEach(function (job) {
-    if (job.tier > rankIdx) return;
-    var locked = false, reason = "";
-    if (job.nightOnly && !T.sim.isNight()) { locked = true; reason = "Night only"; }
-    if (job.requires && job.requires.crew && s.crew.length < job.requires.crew) { locked = true; reason = "Needs " + job.requires.crew + " crew"; }
-    if (s.resources.energy < job.energy) { locked = true; reason = "Low energy"; }
+    // Jobs above your rank stay visible as locked cards so you can see what's
+    // coming and which rank unlocks them.
+    var rankLocked = job.tier > rankIdx;
+    var locked = rankLocked, reason = "";
+    if (rankLocked) reason = "Unlocks at " + T.RANKS[job.tier].name;
+    else {
+      if (job.nightOnly && !T.sim.isNight()) { locked = true; reason = "Night only"; }
+      if (job.requires && job.requires.crew && s.crew.length < job.requires.crew) { locked = true; reason = "Needs " + job.requires.crew + " crew"; }
+      if (s.resources.energy < job.energy) { locked = true; reason = "Low energy"; }
+    }
     var card = el("div", "card");
     var mastery = s.stats.mastery[job.id] || 0;
+    var note = rankLocked
+      ? "<div class='muted small risk'>🔒 Unlocks at " + T.RANKS[job.tier].name + " (level " + T.RANKS[job.tier].min + ")</div>"
+      : (job.special === "sabotage"
+          ? "<div class='muted small risk'>High risk: sabotage a rival politician so your backer pays more — but it can backfire (lose a property + Respect).</div>"
+          : "<div class='muted small'>Done " + mastery + "×" + (mastery >= 5 ? " ★ mastered" : "") + "</div>");
     card.innerHTML =
-      "<h4>" + job.name + (job.special === "sabotage" ? " ⚠️" : "") + "</h4>" +
+      "<h4>" + job.name + (job.special === "sabotage" ? " ⚠️" : "") + (job.nightOnly ? " 🌙" : "") + "</h4>" +
       "<div class='row'><span>⚡ " + job.energy + "</span>" +
       "<span>" + T.money(job.cashMin * T.pack().priceScale) + "–" + T.money(job.cashMax * T.pack().priceScale) + "</span></div>" +
       "<div class='row muted'><span>+" + job.xp + " XP</span><span>+Heat " + job.heat + "</span></div>" +
-      (job.special === "sabotage"
-        ? "<div class='muted small risk'>High risk: sabotage a rival politician so your backer pays more — but it can backfire (lose a property + Respect).</div>"
-        : "<div class='muted small'>Done " + mastery + "×" + (mastery >= 5 ? " ★ mastered" : "") + "</div>");
+      note;
     var btns = el("div", "row");
     var go = el("button", "btn", job.special === "sabotage" ? "Run the job" : "Do job");
     go.disabled = locked; if (locked) go.title = reason;
