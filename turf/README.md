@@ -58,7 +58,9 @@ Empire dashboard.
   opens your own mail app with the message and game link ready (the list is saved
   on your device).
 - **Energy & stamina:** energy holds **100** and refills **40 per hour** (1 every
-  90s); stamina holds **50**. Economy is tuned to realistic Lagos naira (lookout
+  90s); stamina holds **50** and regenerates over time. In the **Fight** tab you
+  can also buy **street food** (+12) or a **romantic indulgence** (+45) to top up
+  stamina for fights and turf wars. Economy is tuned to realistic Lagos naira (lookout
   ≈ ₦4k–9k, a protection round ≈ ₦22k–38k, a kiosk ₦50k, a club ₦1.2M).
 - **Sim systems:** game clock with day/night (affects lighting, crowds, police,
   night-only jobs), Heat / Respect / Loyalty meters, energy & stamina regen over

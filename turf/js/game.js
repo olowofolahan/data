@@ -957,12 +957,46 @@ T.empire.mitigate = function (dmg) {
   return Math.max(3, Math.round(dmg - T.empire.playerDefense() / 4));
 };
 
+/* Buy a street consumable to restore Stamina. */
+T.empire.buyConsumable = function (c) {
+  var s = T.state, cost = c.cost * T.pack().priceScale;
+  if (s.resources.stamina >= s.resources.staminaMax) { T.toast("Stamina already full", "warn"); return false; }
+  if (s.player.cash < cost) { T.toast("Can't afford it", "warn"); return false; }
+  s.player.cash -= cost;
+  var before = s.resources.stamina;
+  s.resources.stamina = clamp(s.resources.stamina + c.stamina, 0, s.resources.staminaMax);
+  T.toast(c.emoji + " " + c.name + " — +" + Math.round(s.resources.stamina - before) + " stamina", "good");
+  T.save(); return true;
+};
+T.empire.staminaRefuel = function (body) {
+  var s = T.state;
+  body.appendChild(el("h3", null, "Street refuel (stamina)"));
+  body.appendChild(el("p", "muted", "Buy street food or a night out to top up stamina for fights and turf wars."));
+  var grid = el("div", "cards");
+  T.CONSUMABLES.forEach(function (c) {
+    var cost = c.cost * T.pack().priceScale, full = s.resources.stamina >= s.resources.staminaMax;
+    var card = el("div", "card");
+    card.innerHTML = "<h4>" + c.emoji + " " + c.name + "</h4>" +
+      "<div class='muted small'>+" + c.stamina + " stamina</div>" +
+      "<div class='muted small'>" + c.desc + "</div>";
+    var b = el("button", "btn", "Buy " + T.money(cost));
+    b.disabled = full || s.player.cash < cost;
+    if (full) b.title = "Stamina already full";
+    b.onclick = function () { if (T.empire.buyConsumable(c)) T.empire.render(); };
+    card.appendChild(b);
+    grid.appendChild(card);
+  });
+  body.appendChild(grid);
+};
+
 T.empire.tabFight = function (body) {
   var s = T.state, pk = T.pack();
   body.appendChild(el("p", "muted", "Attack a rival crew. Your Attack vs their defence decides the win; your Defence cuts the damage you take when it goes wrong. Build both in the Arsenal and Crew tabs."));
   var myAtk = T.empire.fightStrength(), myDef = T.empire.playerDefense();
   var w = T.weaponById(s.equipped), g = T.empire.gearEquipped();
   body.appendChild(el("div", "kpi", "⚔️ Attack: <strong>" + myAtk + "</strong> · 🛡️ Defence: <strong>" + myDef + "</strong> · Weapon: " + w.name + " · Gear: " + (g ? g.name + " Lv " + g.level : "none") + " · Stamina " + Math.floor(s.resources.stamina) + "/" + s.resources.staminaMax));
+  T.empire.staminaRefuel(body);
+  body.appendChild(el("h3", null, "Rival crews"));
   var list = el("div", "cards");
   pk.rivals.forEach(function (r, i) {
     var def = 12 + i * 10 + s.player.level * 2;

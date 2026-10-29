@@ -222,6 +222,15 @@ TURF.GEAR = [
 ];
 TURF.gearById = function (id) { return TURF.GEAR.filter(function (g) { return g.id === id; })[0] || null; };
 
+/* -------------------------------------------------------------------------- */
+/* Street consumables — buy with cash to top up Stamina.                        */
+/* -------------------------------------------------------------------------- */
+TURF.CONSUMABLES = [
+  { id: "food",    name: "Street food",            emoji: "🍢", stamina: 12, cost: 30,  desc: "Suya, rice and pepper soup — get your energy back." },
+  { id: "feast",   name: "Big feast",              emoji: "🍲", stamina: 25, cost: 70,  desc: "A proper spread with the crew. Refuels you well." },
+  { id: "romance", name: "Romantic indulgence",    emoji: "💋", stamina: 45, cost: 220, desc: "A night out on the town. You come back buzzing." }
+];
+
 /* Street missions (linked to Empire jobs via streetMissionId). */
 TURF.MISSIONS = {
   m_cartheft:  { kind: "cartheft",  label: "Boost a car and reach the chop shop" },
