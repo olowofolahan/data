@@ -52,6 +52,8 @@ Empire dashboard.
     Armoured SUV — these raise your **Defence** (and some your Attack). Defence
     cuts the damage you take when a fight or turf war goes against you. Crew
     attack/defence stack on top.
+  - **Upgrade gear** up to Lv 5: each level adds +40% of its base bonus (cost
+    rises per level), just like upgrading a property.
 - **Friends:** add friends by email and **invite them by email** — the invite
   opens your own mail app with the message and game link ready (the list is saved
   on your device).

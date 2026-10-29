@@ -113,6 +113,8 @@ T.ensureDefaults = function () {
   if (!s.equipped || !s.weapons[s.equipped]) s.equipped = "fist";
   if (!s.friends) s.friends = [];
   if (!s.gear) s.gear = {};
+  // Gear now stores a level number; migrate older `true` flags to level 1.
+  Object.keys(s.gear).forEach(function (id) { if (s.gear[id] === true) s.gear[id] = 1; });
   if (s.equippedGear === undefined) s.equippedGear = null;
   if (s.lastFlyerVisit == null) s.lastFlyerVisit = now();
   // Energy bar is now 100 (refills 40/hour). Lift older saves to the new cap.
@@ -931,7 +933,15 @@ T.empire.tabDistricts = function (body) {
 T.weaponBonus = function (w) {
   return Math.round((w.damage || 0) / 3) + (w.type === "gun" ? 6 : 0) + (w.type === "influence" ? 10 : 0);
 };
-T.empire.gearEquipped = function () { return T.state.equippedGear ? T.gearById(T.state.equippedGear) : null; };
+T.gearLevel = function (id) { var v = T.state.gear[id]; return typeof v === "number" ? v : (v ? 1 : 0); };
+T.GEAR_MAX_LEVEL = 5;
+/* Effective gear stats scale +40% of base per level above 1. */
+T.gearEffective = function (id) {
+  var g = T.gearById(id); if (!g) return null;
+  var lvl = T.gearLevel(id) || 1, mult = 1 + 0.4 * (lvl - 1);
+  return { id: id, name: g.name, level: lvl, atk: Math.round(g.atk * mult), def: Math.round(g.def * mult), base: g };
+};
+T.empire.gearEquipped = function () { return T.state.equippedGear ? T.gearEffective(T.state.equippedGear) : null; };
 T.empire.fightStrength = function () {
   var s = T.state, g = T.empire.gearEquipped();
   return 10 + s.crew.reduce(function (a, c) { return a + c.attack; }, 0) + s.player.level * 2 +
@@ -952,7 +962,7 @@ T.empire.tabFight = function (body) {
   body.appendChild(el("p", "muted", "Attack a rival crew. Your Attack vs their defence decides the win; your Defence cuts the damage you take when it goes wrong. Build both in the Arsenal and Crew tabs."));
   var myAtk = T.empire.fightStrength(), myDef = T.empire.playerDefense();
   var w = T.weaponById(s.equipped), g = T.empire.gearEquipped();
-  body.appendChild(el("div", "kpi", "⚔️ Attack: <strong>" + myAtk + "</strong> · 🛡️ Defence: <strong>" + myDef + "</strong> · Weapon: " + w.name + " · Gear: " + (g ? g.name : "none") + " · Stamina " + Math.floor(s.resources.stamina) + "/" + s.resources.staminaMax));
+  body.appendChild(el("div", "kpi", "⚔️ Attack: <strong>" + myAtk + "</strong> · 🛡️ Defence: <strong>" + myDef + "</strong> · Weapon: " + w.name + " · Gear: " + (g ? g.name + " Lv " + g.level : "none") + " · Stamina " + Math.floor(s.resources.stamina) + "/" + s.resources.staminaMax));
   var list = el("div", "cards");
   pk.rivals.forEach(function (r, i) {
     var def = 12 + i * 10 + s.player.level * 2;
@@ -1013,8 +1023,21 @@ T.buyGear = function (g) {
   var rankIdx = T.RANKS.indexOf(T.rankForLevel(s.player.level)) + 1;
   if (rankIdx < g.minRank) { T.toast("Needs rank " + g.minRank, "warn"); return false; }
   if (s.player.cash < cost) { T.toast("Can't afford it", "warn"); return false; }
-  s.player.cash -= cost; s.gear[g.id] = true;
+  s.player.cash -= cost; s.gear[g.id] = 1;
   T.toast("Bought " + g.name, "good"); T.save(); return true;
+};
+T.gearUpgradeCost = function (id) {
+  var g = T.gearById(id); return Math.round(g.cost * 0.6 * T.gearLevel(id)) * T.pack().priceScale;
+};
+T.upgradeGear = function (id) {
+  var s = T.state, g = T.gearById(id);
+  if (!g || !s.gear[id]) return false;
+  var lvl = T.gearLevel(id);
+  if (lvl >= T.GEAR_MAX_LEVEL) { T.toast("Already maxed", "warn"); return false; }
+  var cost = T.gearUpgradeCost(id);
+  if (s.player.cash < cost) { T.toast("Can't afford upgrade", "warn"); return false; }
+  s.player.cash -= cost; s.gear[id] = lvl + 1;
+  T.toast("Upgraded " + g.name + " to Lv " + (lvl + 1), "good"); T.save(); return true;
 };
 T.equipGear = function (id) {
   if (!T.state.gear[id]) return false;
@@ -1029,9 +1052,10 @@ T.gearCards = function (host, onChange) {
   var grid = el("div", "cards");
   T.GEAR.forEach(function (g) {
     var owned = !!s.gear[g.id], on = s.equippedGear === g.id;
+    var eff = owned ? T.gearEffective(g.id) : { atk: g.atk, def: g.def, level: 1 };
     var card = el("div", "card" + (on ? " card--hi" : ""));
-    var bonus = (g.atk ? "+" + g.atk + " ⚔️" : "") + (g.atk && g.def ? " · " : "") + (g.def ? "+" + g.def + " 🛡️" : "");
-    card.innerHTML = "<h4>🧥 " + g.name + "</h4>" +
+    var bonus = (eff.atk ? "+" + eff.atk + " ⚔️" : "") + (eff.atk && eff.def ? " · " : "") + (eff.def ? "+" + eff.def + " 🛡️" : "");
+    card.innerHTML = "<h4>🧥 " + g.name + (owned ? " <span class='muted small'>Lv " + eff.level + "/" + T.GEAR_MAX_LEVEL + "</span>" : "") + "</h4>" +
       "<div class='muted small'>" + bonus + "</div>" +
       "<div class='muted small'>" + g.desc + "</div>";
     var row = el("div", "row");
@@ -1045,6 +1069,11 @@ T.gearCards = function (host, onChange) {
       var eq = el("button", "btn" + (on ? " btn--ghost" : ""), on ? "Equipped — take off" : "Equip");
       eq.onclick = function () { if (T.equipGear(g.id)) onChange(); };
       row.appendChild(eq);
+      var maxed = eff.level >= T.GEAR_MAX_LEVEL;
+      var up = el("button", "btn btn--ghost", maxed ? "Maxed" : "Upgrade " + T.money(T.gearUpgradeCost(g.id)));
+      up.disabled = maxed || s.player.cash < T.gearUpgradeCost(g.id);
+      up.onclick = function () { if (T.upgradeGear(g.id)) onChange(); };
+      row.appendChild(up);
     }
     card.appendChild(row);
     if (!owned && rankIdx < g.minRank) card.classList.add("card--locked");
@@ -1093,7 +1122,7 @@ T.empire.tabArsenal = function (body) {
   var eqW = T.weaponById(s.equipped), g = T.empire.gearEquipped();
   body.appendChild(el("div", "kpi",
     "⚔️ Attack: <strong>" + T.empire.fightStrength() + "</strong> · 🛡️ Defence: <strong>" + T.empire.playerDefense() + "</strong><br>" +
-    "Weapon: " + eqW.name + " · Gear: " + (g ? g.name : "none")));
+    "Weapon: " + eqW.name + " · Gear: " + (g ? g.name + " (Lv " + g.level + ")" : "none")));
 
   body.appendChild(el("h3", null, "Weapons (Attack)"));
   T.weaponCards(body, rerender);
