@@ -32,8 +32,9 @@ Empire dashboard.
 - **Crew** (4 roles, loyalty, wages, district assignment) — gift, **raise wages
   to boost loyalty**, or **fire** a member.
 - **Properties** (buy/upgrade, timed income), **Districts** (0–100% control,
-  takeover, and **turf wars** resolved with your strength), **Fight** (attack
-  rival gangs).
+  takeover, and **turf wars** resolved with your strength). When a district is
+  slipping, the card and the alert **tell you why** (which rival raided it, no
+  crew defending, high-danger area, high Heat). **Fight** (attack rival gangs).
 - **Arsenal:** buy & equip melee (fists → bat → machete) and firearms (pistol →
   SMG → shotgun), unlocked by rank. The equipped weapon **adds to your strength**
   in fights and turf wars.
@@ -43,8 +44,9 @@ Empire dashboard.
 - **Born-again converts:** now and then a reformed gang member visits the
   dashboard to say they're **born again** and quotes a verse of Scripture (KJV).
   Bless them (eases Heat) or wave them off.
-- **Energy:** the bar holds **100** and refills **40 per hour** (1 point every
-  90s); jobs spend it.
+- **Energy & stamina:** energy holds **100** and refills **40 per hour** (1 every
+  90s); stamina holds **50**. Economy is tuned to realistic Lagos naira (lookout
+  ≈ ₦4k–9k, a protection round ≈ ₦22k–38k, a kiosk ₦50k, a club ₦1.2M).
 - **Sim systems:** game clock with day/night (affects lighting, crowds, police,
   night-only jobs), Heat / Respect / Loyalty meters, energy & stamina regen over
   real time, **offline progress** ("While you were away"), **weekly upkeep**, and

@@ -63,7 +63,7 @@ T.newGame = function (country, name, look) {
     player: { name: name || "Newcomer", look: look || pk.characterLooks[0],
               level: 1, xp: 0, cash: 200 * pk.priceScale,
               respect: 0, heat: 0 },
-    resources: { energy: 100, energyMax: 100, stamina: 10, staminaMax: 10, health: 100, healthMax: 100 },
+    resources: { energy: 100, energyMax: 100, stamina: 50, staminaMax: 50, health: 100, healthMax: 100 },
     resUpdated: t,
     crew: [],
     properties: [],
@@ -120,6 +120,11 @@ T.ensureDefaults = function () {
   if (s.resources && s.resources.energyMax < 100) {
     s.resources.energyMax = 100;
     if (s.resources.energy < 100) s.resources.energy = Math.min(100, s.resources.energy + 40);
+  }
+  // Stamina cap is now 50. Lift older saves.
+  if (s.resources && s.resources.staminaMax < 50) {
+    s.resources.staminaMax = 50;
+    s.resources.stamina = Math.min(50, (s.resources.stamina || 0) + 20);
   }
 };
 T.exportCode = function () {
@@ -290,18 +295,32 @@ T.sim.rivalTick = function () {
     return ca - cb;
   });
   var weakest = owned[0];
-  var defended = crewIn(weakest) > 0;
-  var drop = defended ? randint(2, 6) : randint(8, 18);
-  T.state.districts[weakest].control = clamp(T.state.districts[weakest].control - drop, 0, 100);
-  var dName = T.pack().districts.filter(function (d) { return d.id === weakest; })[0].name;
-  if (T.state.districts[weakest].control <= 0) {
-    T.state.districts[weakest].owner = pick(T.pack().rivals).id;
-    T.state.districts[weakest].control = 60;
+  var st = T.state.districts[weakest];
+  var dMeta = T.pack().districts.filter(function (d) { return d.id === weakest; })[0];
+  var dName = dMeta.name;
+  var crew = crewIn(weakest);
+  var rival = pick(T.pack().rivals);
+
+  // Work out the drop and the contributing reasons, so we can tell the player why.
+  var reasons = [];
+  var drop = randint(6, 12);
+  if (crew === 0) { drop += randint(5, 9); reasons.push("no crew defending it"); }
+  else { drop = Math.max(2, drop - crew * 4); reasons.push("your " + crew + " crew limited the damage"); }
+  if (dMeta.danger >= 4) { drop += 2; reasons.push("it's a high-danger area"); }
+  if (T.state.player.heat >= 60) { drop += 3; reasons.push("high Heat tied up your crew"); }
+  if (!reasons.length) reasons.push("steady rival pressure");
+
+  st.control = clamp(st.control - drop, 0, 100);
+  st.lastDrop = { rival: rival.name, amount: drop, crew: crew, reasons: reasons, at: now() };
+
+  if (st.control <= 0) {
+    st.owner = rival.id; st.control = 60; st.lastDrop.lost = true;
     T.state.player.respect = Math.max(0, T.state.player.respect - 20);
-    T.toast("Lost " + dName + " to a rival!", "bad");
-  } else if (!defended) {
-    T.toast("Rivals pressing " + dName + " (-" + drop + "% control)", "warn");
+    T.toast("Lost " + dName + " to " + rival.name + " — " + reasons.join(", "), "bad");
+  } else {
+    T.toast(rival.name + " took " + drop + "% of " + dName + " — " + reasons.join(", "), crew === 0 ? "bad" : "warn");
   }
+  if (T.game.mode === "empire" && T.empire.tab === "districts") T.empire.render();
 };
 function crewIn(districtId) {
   return T.state.crew.filter(function (c) { return c.assignedDistrict === districtId; }).length;
@@ -729,10 +748,24 @@ T.empire.tabDistricts = function (body) {
       st.owner === null ? "Unclaimed" :
       (pk.rivals.filter(function (r) { return r.id === st.owner; })[0] || { name: "Rival" }).name;
     var card = el("div", "card");
+    var crew = crewIn(d.id);
     card.innerHTML = "<h4><span class='dot' style='background:" + d.color + "'></span>" + d.name + "</h4>" +
       "<div class='muted small'>" + d.type + " · income " + T.money(d.income * T.pack().priceScale) + "/day · owner: " + ownerName + "</div>" +
       "<div class='meter'><div class='meter-fill' style='width:" + st.control + "%;background:" + (st.owner === "player" ? "#39b37a" : "#c0392b") + "'></div></div>" +
-      "<div class='muted small'>Control " + Math.round(st.control) + "% · crew here: " + crewIn(d.id) + "</div>";
+      "<div class='muted small'>Control " + Math.round(st.control) + "% · crew here: " + crew + "</div>";
+
+    // Why control is moving: defense status + the latest raid's reasons.
+    if (st.owner === "player") {
+      var status = el("div", "small");
+      if (crew === 0) status.innerHTML = "<span class='risk'>⚠️ No crew defending — raids hit hard. Assign crew in the Crew tab.</span>";
+      else status.innerHTML = "<span class='ok'>🛡️ Defended by " + crew + " crew.</span>";
+      card.appendChild(status);
+      if (st.lastDrop && now() - st.lastDrop.at < 15 * 60 * 1000) {
+        var ld = st.lastDrop;
+        card.appendChild(el("div", "small risk",
+          "Losing control: " + ld.rival + " took " + ld.amount + "% — " + ld.reasons.join(", ") + "."));
+      }
+    }
     if (st.owner !== "player") {
       var push = el("button", "btn", "Move in (5 ⚡)");
       push.disabled = s.resources.energy < 5;

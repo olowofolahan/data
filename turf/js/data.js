@@ -93,7 +93,7 @@ TURF.COUNTRY_PACKS = {
     country: "Nigeria",
     city: "Lagos (fictionalised)",
     currency: { name: "Naira", symbol: "₦" },
-    priceScale: 1000,
+    priceScale: 100,
     police: "The Task Force",
     weather: "Hot, with rainy-season floods",
     radio: "Royalty-free afrobeat and highlife",
