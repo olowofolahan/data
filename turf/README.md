@@ -29,7 +29,8 @@ browser (desktop or mobile) and play. All art is drawn procedurally on a canvas.
 Both modes share one state store (`localStorage` save, with export/import codes).
 
 - **Empire mode** (dashboard): Jobs with tiers unlocked by rank, Crew (4 roles,
-  loyalty, wages, district assignment), Properties (buy/upgrade, timed income),
+  loyalty, wages, district assignment — gift, **raise wages to boost loyalty**,
+  or **fire** a member), Properties (buy/upgrade, timed income),
   Districts (0–100% control, takeover), Fight (attack rival gangs), Inventory +
   Flyers, Profile (save tools, premium toggle, prestige at Kingpin).
 - **Street mode** (canvas): generated tile city with district regions, on-foot &
@@ -45,6 +46,8 @@ Both modes share one state store (`localStorage` save, with export/import codes)
   speech bubbles. Every so often a reformed gang member walks up to the boss to
   say they're **born again** and quotes a verse of Scripture (KJV). You can
   bless them (eases Heat) or wave them off.
+- **Energy:** the bar holds **100** and refills **40 per hour** (1 point every
+  90s), capped at the bar; jobs spend it.
 - **Sim systems:** game clock with day/night (affects lighting, crowds, police,
   night-only jobs), Heat / Respect / Loyalty meters, energy & stamina regen over
   real time, **offline progress** ("While you were away"), **weekly upkeep**, and

@@ -64,7 +64,7 @@ T.newGame = function (country, name, look) {
     player: { name: name || "Newcomer", look: look || pk.characterLooks[0],
               level: 1, xp: 0, cash: 200 * pk.priceScale,
               respect: 0, heat: 0 },
-    resources: { energy: 20, energyMax: 20, stamina: 10, staminaMax: 10, health: 100, healthMax: 100 },
+    resources: { energy: 100, energyMax: 100, stamina: 10, staminaMax: 10, health: 100, healthMax: 100 },
     resUpdated: t,
     crew: [],
     properties: [],
@@ -112,6 +112,11 @@ T.ensureDefaults = function () {
   if (!s.ammo) s.ammo = {};
   if (!s.equipped || !s.weapons[s.equipped]) s.equipped = "fist";
   if (s.converts == null) s.converts = 0;
+  // Energy bar is now 100 (refills 40/hour). Lift older saves to the new cap.
+  if (s.resources && s.resources.energyMax < 100) {
+    s.resources.energyMax = 100;
+    if (s.resources.energy < 100) s.resources.energy = Math.min(100, s.resources.energy + 40);
+  }
 };
 T.exportCode = function () {
   try { return btoa(unescape(encodeURIComponent(JSON.stringify(T.state)))); }
@@ -137,24 +142,22 @@ T.sim.clockStr = function () {
   return ("0" + h).slice(-2) + ":" + ("0" + m).slice(-2);
 };
 
+/* Energy refills at 1 point every 90s = 40 per hour (bar holds 100). */
+var ENERGY_MS = 90 * 1000;
+
 /* Regen resources from elapsed real time (also covers offline). */
 T.sim.regen = function () {
   var r = T.state.resources, dt = now() - T.state.resUpdated;
   if (dt <= 0) return;
-  var eGain = Math.floor(dt / (3 * 60 * 1000));
+  var eGain = Math.floor(dt / ENERGY_MS);
   var sGain = Math.floor(dt / (4 * 60 * 1000));
   var hGain = Math.floor(dt / (90 * 1000)); // slow health regen ~1 / 90s
   if (eGain > 0) r.energy  = clamp(r.energy  + eGain, 0, r.energyMax);
   if (sGain > 0) r.stamina = clamp(r.stamina + sGain, 0, r.staminaMax);
   if (hGain > 0) r.health  = clamp(r.health  + hGain, 0, r.healthMax);
-  // Advance resUpdated only by whole consumed intervals to avoid losing remainder.
-  var used = Math.min(
-    eGain > 0 ? eGain * 3 * 60 * 1000 : dt,
-    sGain > 0 ? sGain * 4 * 60 * 1000 : dt
-  );
-  // Simpler & safe: keep remainder for the fastest timer (energy).
-  T.state.resUpdated += eGain * 3 * 60 * 1000;
-  if (eGain === 0) T.state.resUpdated = now() - (dt % (3 * 60 * 1000));
+  // Keep the remainder for the fastest timer (energy) so no fraction is lost.
+  T.state.resUpdated += eGain * ENERGY_MS;
+  if (eGain === 0) T.state.resUpdated = now() - (dt % ENERGY_MS);
 };
 
 /* Pending passive income from properties + owned districts. */
@@ -307,8 +310,7 @@ T.sim.addXp = function (xp) {
   while (T.state.player.xp >= T.xpForLevel(T.state.player.level) && T.state.player.level < 50) {
     T.state.player.xp -= T.xpForLevel(T.state.player.level);
     T.state.player.level++;
-    T.state.resources.energyMax += 2;
-    T.state.resources.staminaMax += 1;
+    T.state.resources.staminaMax += 1; // energy cap stays at 100
     leveled = true;
   }
   if (leveled) {
@@ -572,10 +574,26 @@ T.empire.tabCrew = function (body) {
       }
     });
     sel.onchange = function () { c.assignedDistrict = sel.value || null; T.save(); };
-    var gift = el("button", "btn btn--ghost", "Gift (" + T.money(50 * T.pack().priceScale) + ") +Loyalty");
+    card.appendChild(sel);
+
+    var btns = el("div", "row");
+    var gift = el("button", "btn btn--ghost", "Gift " + T.money(50 * T.pack().priceScale));
     gift.disabled = s.player.cash < 50 * T.pack().priceScale;
-    gift.onclick = function () { s.player.cash -= 50 * T.pack().priceScale; c.loyalty = clamp(c.loyalty + 15, 0, 100); T.save(); T.empire.render(); };
-    card.appendChild(sel); card.appendChild(gift);
+    gift.onclick = function () { s.player.cash -= 50 * T.pack().priceScale; c.loyalty = clamp(c.loyalty + 15, 0, 100); T.toast(c.name + " loyalty up (gift)", "good"); T.save(); T.empire.render(); };
+    // Raise wage: permanent pay bump that lifts loyalty (and the weekly bill)
+    var raise = el("button", "btn btn--ghost", "Raise wage +" + T.money(1 * T.pack().priceScale) + "/wk");
+    raise.title = "Costs more at weekly upkeep, but loyalty rises";
+    raise.onclick = function () { c.wage += 1; c.loyalty = clamp(c.loyalty + 18, 0, 100); T.toast(c.name + " got a raise — loyalty up", "good"); T.save(); T.empire.render(); };
+    var fire = el("button", "btn btn--danger", "Fire");
+    fire.onclick = function () {
+      if (!confirm("Fire " + c.name + " (" + T.CREW_ROLES[c.role].label + ")? This can't be undone.")) return;
+      s.crew = s.crew.filter(function (x) { return x.id !== c.id; });
+      // Letting someone go rattles the rest a little.
+      s.crew.forEach(function (x) { x.loyalty = clamp(x.loyalty - 5, 0, 100); });
+      T.toast(c.name + " was let go", "warn"); T.save(); T.empire.render();
+    };
+    btns.appendChild(gift); btns.appendChild(raise); btns.appendChild(fire);
+    card.appendChild(btns);
     list.appendChild(card);
   });
   body.appendChild(list);
