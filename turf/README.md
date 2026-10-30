@@ -68,8 +68,10 @@ Empire dashboard.
     current rank/number is in the header.
 - **Friends:** add friends by email and **invite them** — Send invite opens a
   ready-made message you can **copy** (email, WhatsApp, SMS) or open in your mail
-  app. (The sandboxed game page can't send mail itself, so the invite is
-  copy-or-tap rather than an automatic email.) The list is saved on your device.
+  app. Because the game runs on a **private** link, you first make it shareable
+  via the page's **Share** menu and **paste that link** into the invite (it's
+  remembered after that); otherwise friends get "page not found." The sandboxed
+  page can't send mail itself, and your list is saved on your device.
 - **Energy & stamina:** energy holds **100** and refills **40 per hour** (1 every
   90s); stamina holds **50** and regenerates over time. In the **Fight** tab you
   can also buy **street food** (+12) or a **romantic indulgence** (+45) to top up

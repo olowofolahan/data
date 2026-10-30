@@ -249,45 +249,57 @@ T.ui.prompt = function (opts) {
 };
 
 /* ---- Invite overlay ----------------------------------------------------- */
-/* The game page runs sandboxed, so we can't reliably trigger the email client
- * programmatically. Instead we show the ready-made message with a Copy button
- * and a tappable mailto link the player can use in any app. */
+/* The game runs sandboxed, so it can't read its own public claude.ai link (the
+ * frame's internal URL is not shareable and gives friends "page not found"),
+ * and the artifact is private by default. So the player pastes their own
+ * shareable link; we remember it and build the message around it. */
 T.ui.invite = function (opts) {
-  var mailto = "mailto:" + encodeURIComponent(opts.to || "") +
-    "?subject=" + encodeURIComponent(opts.subject || "") + "&body=" + encodeURIComponent(opts.body || "");
   var node = el("div");
   node.appendChild(el("h2", null, "Invite " + (opts.title || "a friend")));
-  node.appendChild(el("p", "muted", "Copy this and send it however you like (email, WhatsApp, SMS), or tap the mail link. The game can't send it for you."));
+  node.appendChild(el("p", "muted", "To let a friend play, share the game first: open the <strong>Share</strong> menu at the top of this page, turn on sharing, copy that link, and paste it below. (Without it, friends get “page not found” because your link is private.)"));
 
-  var ta = el("textarea", "input"); ta.rows = 7; ta.readOnly = true; ta.value = opts.body || "";
+  var field = el("div", "field");
+  field.appendChild(el("label", null, "Shareable game link"));
+  var linkIn = el("input", "input");
+  linkIn.placeholder = "https://claude.ai/…  (paste from the Share menu)";
+  linkIn.value = opts.link || "";
+  field.appendChild(linkIn);
+  node.appendChild(field);
+
+  var ta = el("textarea", "input"); ta.rows = 6; ta.readOnly = true;
   node.appendChild(ta);
+
+  var a = el("a", "btn btn--ghost btn--big", "✉️ Open email app");
+  a.target = "_blank"; a.rel = "noopener";
+  a.style.display = "block"; a.style.textAlign = "center"; a.style.textDecoration = "none";
+  a.onclick = function () { if (opts.onSent) opts.onSent(); };
+
+  function refresh() {
+    var l = (linkIn.value || "").trim();
+    var body = opts.buildBody(l || "[paste your shareable game link here]");
+    ta.value = body;
+    a.href = "mailto:" + encodeURIComponent(opts.to || "") + "?subject=" + encodeURIComponent(opts.subject || "") + "&body=" + encodeURIComponent(body);
+  }
+  linkIn.oninput = function () { refresh(); if (opts.onLinkSave) opts.onLinkSave((linkIn.value || "").trim()); };
+  refresh();
 
   var copy = el("button", "btn btn--big", "📋 Copy invite");
   copy.onclick = function () {
     var done = function () { copy.textContent = "✓ Copied"; T.toast("Invite copied", "good"); if (opts.onSent) opts.onSent(); };
     try {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(ta.value).then(done, function () { fallback(); });
-      } else fallback();
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(ta.value).then(done, fallback);
+      else fallback();
     } catch (e) { fallback(); }
-    function fallback() {
-      try { ta.focus(); ta.select(); document.execCommand("copy"); done(); }
-      catch (e2) { T.toast("Select the text and copy it", "warn"); }
-    }
+    function fallback() { try { ta.focus(); ta.select(); document.execCommand("copy"); done(); } catch (e2) { T.toast("Select the text and copy it", "warn"); } }
   };
   node.appendChild(copy);
-
-  var a = el("a", "btn btn--ghost btn--big", "✉️ Open email app");
-  a.href = mailto; a.target = "_blank"; a.rel = "noopener";
-  a.style.display = "block"; a.style.textAlign = "center"; a.style.textDecoration = "none";
-  a.onclick = function () { if (opts.onSent) opts.onSent(); };
   node.appendChild(a);
 
   var close = el("button", "btn btn--ghost btn--big", "Close");
   close.onclick = function () { back.close(); };
   node.appendChild(close);
   var back = overlay(node, true);
-  setTimeout(function () { try { ta.focus(); ta.select(); } catch (e) {} }, 60);
+  setTimeout(function () { try { (linkIn.value ? ta : linkIn).focus(); } catch (e) {} }, 60);
   return back;
 };
 

@@ -70,7 +70,7 @@ T.newGame = function (country, name, look) {
     inventory: { items: [], flyers: [] },
     weapons: { fist: true }, ammo: {}, equipped: "fist",
     gear: {}, equippedGear: null,
-    friends: [],
+    friends: [], shareLink: "",
     lastFlyerVisit: t,
     flyersToday: 0, lastFlyerDay: 0,
     premium: false,
@@ -112,6 +112,7 @@ T.ensureDefaults = function () {
   if (!s.ammo) s.ammo = {};
   if (!s.equipped || !s.weapons[s.equipped]) s.equipped = "fist";
   if (!s.friends) s.friends = [];
+  if (s.shareLink == null) s.shareLink = "";
   if (!s.gear) s.gear = {};
   // Gear now stores a level number; migrate older `true` flags to level 1.
   Object.keys(s.gear).forEach(function (id) { if (s.gear[id] === true) s.gear[id] = 1; });
@@ -1251,14 +1252,17 @@ T.empire.inviteLink = function () {
   try { return window.location.href.split("#")[0]; } catch (e) { return "https://claude.ai"; }
 };
 T.empire.inviteFriend = function (friend) {
-  var s = T.state, link = T.empire.inviteLink();
-  var subject = "Come run with my crew in Turf";
-  var body = "Hey " + (friend.name || "") + ",\n\n" +
-    s.player.name + " here. I'm building a syndicate in Turf (a top-down crime sim you play in the browser) in " +
-    T.pack().city + ". Come start your own crew and let's see who takes the city.\n\nPlay here: " + link +
-    "\n\nSee you on the streets.\n- " + s.player.name;
+  var s = T.state;
+  var buildBody = function (link) {
+    return "Hey " + (friend.name || "") + ",\n\n" +
+      s.player.name + " here. I'm building a syndicate in Turf (a top-down crime sim you play in the browser) in " +
+      T.pack().city + ". Come start your own crew and let's see who takes the city.\n\nPlay here: " + link +
+      "\n\nSee you on the streets.\n- " + s.player.name;
+  };
   T.ui.invite({
-    title: friend.name || friend.email, to: friend.email, subject: subject, body: body,
+    title: friend.name || friend.email, to: friend.email, subject: "Come run with my crew in Turf",
+    buildBody: buildBody, link: s.shareLink || "",
+    onLinkSave: function (l) { s.shareLink = l; T.save(); },
     onSent: function () { friend.invited = true; friend.invitedAt = now(); T.save(); T.empire.render(); }
   });
 };
@@ -1311,11 +1315,11 @@ T.empire.tabFriends = function (body) {
     var all = el("button", "btn btn--ghost", "Invite all " + pending.length + " uninvited");
     all.style.marginTop = "12px";
     all.onclick = function () {
-      var link = T.empire.inviteLink();
-      var body2 = "Come start a crew in Turf (a browser crime sim). Play here: " + link + "\n\n- " + s.player.name;
+      var buildBody = function (link) { return "Come start a crew in Turf (a browser crime sim). Play here: " + link + "\n\n- " + s.player.name; };
       T.ui.invite({
         title: pending.length + " friends", to: pending.map(function (f) { return f.email; }).join(","),
-        subject: "Come play Turf with me", body: body2,
+        subject: "Come play Turf with me", buildBody: buildBody, link: s.shareLink || "",
+        onLinkSave: function (l) { s.shareLink = l; T.save(); },
         onSent: function () { pending.forEach(function (f) { f.invited = true; f.invitedAt = now(); }); T.save(); T.empire.render(); }
       });
     };
