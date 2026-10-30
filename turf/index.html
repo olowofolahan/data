@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<title>Turf</title>
+<meta name="description" content="Turf — a top-down browser crime sim. Climb from broke hustler to kingpin across Empire mode and Street mode." />
+<link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+<div id="app">
+  <!-- Top bar -->
+  <div class="topbar">
+    <div class="brand">TU<span>RF</span></div>
+    <div class="spacer"></div>
+    <div class="muted small" id="topbar-city"></div>
+  </div>
+
+  <!-- Main -->
+  <div class="main">
+
+    <!-- Empire mode -->
+    <div id="empire">
+      <div class="emp-header">
+        <div class="toprow">
+          <div>
+            <div class="who" id="hd-name">—</div>
+            <div class="rank" id="hd-rank">—</div>
+          </div>
+          <div class="xpwrap">
+            <div class="small muted">XP</div>
+            <div class="meter"><div class="meter-fill" id="hd-xpbar" style="width:0"></div></div>
+          </div>
+          <div class="heatwrap heat">
+            <div class="small muted">Heat <span id="hd-heat">0%</span></div>
+            <div class="meter"><div class="meter-fill" id="hd-heatbar" style="width:0"></div></div>
+          </div>
+        </div>
+        <div class="bars">
+          <div class="stat">Cash <b id="hd-cash">—</b></div>
+          <div class="stat">⚡ Energy <b id="hd-energy">—</b></div>
+          <div class="stat">💪 Stamina <b id="hd-stamina">—</b></div>
+          <div class="stat">❤️ Health <b id="hd-health">—</b></div>
+          <div class="stat">Respect <b id="hd-respect">—</b></div>
+          <div class="stat" id="hd-clock">—</div>
+        </div>
+        <div class="banner-ad" id="hd-banner">Ad</div>
+      </div>
+      <div class="tabs" id="emp-tabs"></div>
+      <div class="emp-body" id="emp-body"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Splash -->
+<div id="splash">
+  <div class="logo">TU<span>RF</span></div>
+  <div class="tag">Loading the city…</div>
+</div>
+
+<div id="overlays"></div>
+<div id="toasts"></div>
+
+<script src="js/config.js"></script>
+<script src="js/data.js"></script>
+<script src="js/game.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/online.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
