@@ -125,11 +125,29 @@ up using the artifact's shared database:
   system); the defender applies the consequence the next time they load, and
   sees a "raids while you were away" summary.
 
-Writing (posting your score, raiding) needs **Contributor/Editor** access on the
-shared artifact (or same-workspace membership); people on a plain **public link**
-from outside the workspace can **view the board but not post or raid**. On a local
-file the World tab stays off and the rest of the game works normally. Code lives
-in `js/online.js` and uses the `db` + `user` runtime capabilities.
+Two backends power the World tab (see `js/online.js`):
+
+**1. Supabase — OPEN multiplayer (recommended for real play).** Every player on
+the shared link posts and raids, using one Supabase project's public anon key.
+Set it up once:
+1. Create a free project at [supabase.com](https://supabase.com).
+2. In the project's **SQL Editor**, run [`turf/supabase/schema.sql`](supabase/schema.sql)
+   (creates the `players` + `raids` tables and opens them to the anon key via RLS).
+3. In **Project Settings → API**, copy the **Project URL** and the **anon public**
+   key (both are safe to ship in client code — the anon key is meant to be public).
+4. Put them in [`js/config.js`](js/config.js) (`supabaseUrl`, `supabaseAnonKey`) and
+   republish/redeploy so **all** players use them. (The World tab also has a field
+   to paste them for a quick per-device test.)
+
+When configured, the World tab's backend reads "Supabase (open multiplayer)" and
+anyone — public-link visitors included — appears on the board and can raid.
+
+**2. Artifact shared database (fallback, no setup).** Uses the `db` + `user`
+runtime capabilities. The owner and invited **Contributors/Editors** (and
+same-workspace members) can post and raid; a plain **public link** from outside
+the workspace is **read-only** — which is why a second player on a public link
+won't show on that board. On a local file, online stays off and single-player
+works normally.
 
 ## Not yet (v2, per the design doc)
 

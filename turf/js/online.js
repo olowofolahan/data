@@ -1,55 +1,100 @@
 /* ==========================================================================
- * Turf — online layer (async multiplayer via the artifact shared database)
+ * Turf — online layer (async multiplayer)
  * --------------------------------------------------------------------------
- * Uses the published artifact's `db` + `user` runtime capabilities to connect
- * players asynchronously:
- *   - each player publishes a profile snapshot to the shared `players`
- *     collection (a global leaderboard),
- *   - players can "raid" another player's saved empire (resolved with the same
- *     Attack+Defence+Respect rating system), which drops a record into the
- *     shared `raids` collection; the defender applies the consequence the next
- *     time they load.
- * Everything degrades gracefully: on a local file or when the capability is
- * absent, online features simply stay off and the rest of the game is intact.
- * Writing (posting a score, raiding) needs the viewer to be the owner or a
- * Contributor/Editor on the shared artifact — public-link outsiders are
- * read-only, which the UI explains.
+ * Two backends behind one API:
+ *   - "supabase"  OPEN multiplayer — any player on the shared link posts &
+ *                 raids, using your Supabase project (config.js / Settings).
+ *                 Everyone writes with the public anon key (guarded by RLS).
+ *   - "db"        the artifact's built-in shared database — owner + invited
+ *                 contributors can write; public-link outsiders are read-only.
+ *   - null        offline (local file, or neither backend available).
+ * publishProfile / loadLeaderboard / raid / processIncoming work the same way
+ * for the game regardless of which backend is live.
  * ========================================================================== */
 (function () {
 "use strict";
 var T = window.TURF;
 var clamp = function (v, a, b) { return v < a ? a : v > b ? b : v; };
 var now = function () { return Date.now(); };
+var randi = function (a, b) { return Math.floor(a + Math.random() * (b - a + 1)); };
 
-T.online = { ready: false, db: null, user: null, uid: null, canWrite: null, _init: null };
+var SB_ESM = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm";
+
+T.online = { ready: false, mode: null, error: "", db: null, user: null, sb: null, uid: null, canWrite: null, _init: null };
+
+/* Supabase creds: a per-device override (owner testing) wins, else config.js. */
+T.online.supabaseConfig = function () {
+  try { var o = JSON.parse(localStorage.getItem("turf.supabase") || "null"); if (o && o.url && o.key) return o; } catch (e) {}
+  var c = window.TURF_CONFIG || {};
+  if (c.supabaseUrl && c.supabaseAnonKey) return { url: c.supabaseUrl, key: c.supabaseAnonKey };
+  return null;
+};
+T.online.setSupabaseConfig = function (url, key) {
+  try { localStorage.setItem("turf.supabase", JSON.stringify({ url: url, key: key })); } catch (e) {}
+};
+T.online.clearSupabaseConfig = function () { try { localStorage.removeItem("turf.supabase"); } catch (e) {} };
+
+/* Stable anonymous player id (uuid) for open play. */
+T.online.anonId = function () {
+  var id = null;
+  try { id = localStorage.getItem("turf.uuid"); } catch (e) {}
+  if (!id) {
+    id = (window.crypto && crypto.randomUUID) ? crypto.randomUUID()
+      : "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) { var r = Math.random() * 16 | 0; return (c === "x" ? r : (r & 0x3 | 0x8)).toString(16); });
+    try { localStorage.setItem("turf.uuid", id); } catch (e) {}
+  }
+  return id;
+};
 
 T.online.init = function () {
   if (T.online._init) return T.online._init;
   T.online._init = (async function () {
-    try {
-      if (!window.claude || !window.claude.use) return;         // local file / chat artifact
-      var db = await window.claude.use("db");
-      var user = await window.claude.use("user");
-      T.online.db = db || null;
-      T.online.user = user || null;
-      if (user) {
-        try { T.online.uid = await user.id(); } catch (e) { T.online.uid = null; }
-        try { T.online.canWrite = await user.can("data.write"); } catch (e) { T.online.canWrite = null; }
+    // 1) Supabase (open multiplayer) if configured.
+    var cfg = T.online.supabaseConfig();
+    if (cfg) {
+      try {
+        var mod = await import(SB_ESM);
+        T.online.sb = mod.createClient(cfg.url, cfg.key);
+        T.online.uid = T.online.anonId();
+        T.online.canWrite = true;
+        T.online.mode = "supabase";
+        T.online.ready = true;
+        return;
+      } catch (e) {
+        T.online.error = "Supabase couldn't load here (the sandbox may block it — host the game on a static site). " + (e && e.message ? e.message : "");
+        // fall through to the artifact db
       }
-      T.online.ready = true;
-    } catch (e) { /* stay offline */ }
+    }
+    // 2) Artifact shared database.
+    try {
+      if (window.claude && window.claude.use) {
+        var db = await window.claude.use("db");
+        var user = await window.claude.use("user");
+        T.online.db = db || null;
+        T.online.user = user || null;
+        if (user) {
+          try { T.online.uid = await user.id(); } catch (e) {}
+          try { T.online.canWrite = await user.can("data.write"); } catch (e) { T.online.canWrite = null; }
+        }
+        if (db && T.online.uid) { T.online.mode = "db"; }
+      }
+    } catch (e) {}
+    T.online.ready = true;
   })();
   return T.online._init;
 };
 
-T.online.available = function () { return !!(T.online.db && T.online.uid); };
+T.online.available = function () { return !!(T.online.mode && T.online.uid); };
 T.online.writable = function () { return T.online.available() && T.online.canWrite !== false; };
+T.online.backendLabel = function () {
+  return T.online.mode === "supabase" ? "Supabase (open multiplayer)"
+    : T.online.mode === "db" ? "artifact shared database"
+    : "offline";
+};
 
-/* Publish my current standing to the shared leaderboard. */
-T.online.publishProfile = async function () {
-  if (!T.online.writable()) return false;
+function profileBody() {
   var s = T.state;
-  var body = {
+  return {
     name: String(s.player.name || "Boss").slice(0, 24),
     level: s.player.level,
     rank: T.rankForLevel(s.player.level).name,
@@ -58,77 +103,94 @@ T.online.publishProfile = async function () {
     defense: T.empire.playerDefense(),
     districts: Object.keys(s.districts).filter(function (id) { return s.districts[id].owner === "player"; }).length,
     city: T.pack().city,
-    country: T.pack().country,
-    updatedAt: now()
+    country: T.pack().country
   };
-  try { await T.online.db.doc("players/" + T.online.uid).set(body); return true; }
-  catch (e) { return false; }
+}
+
+/* ---- publish profile ---------------------------------------------------- */
+T.online.publishProfile = async function () {
+  if (!T.online.writable()) return false;
+  var b = profileBody();
+  try {
+    if (T.online.mode === "supabase") {
+      b.id = T.online.uid; b.updated_at = new Date().toISOString();
+      var r = await T.online.sb.from("players").upsert(b);
+      return !r.error;
+    }
+    b.updatedAt = now();
+    await T.online.db.doc("players/" + T.online.uid).set(b);
+    return true;
+  } catch (e) { return false; }
 };
 
-/* Top players by respect. */
+/* ---- leaderboard -------------------------------------------------------- */
 T.online.loadLeaderboard = async function () {
   if (!T.online.available()) return [];
   try {
+    if (T.online.mode === "supabase") {
+      var r = await T.online.sb.from("players").select("*").order("respect", { ascending: false }).limit(50);
+      return (r.data || []).map(function (v) { v._id = v.id; return v; });
+    }
     var snap = await T.online.db.collection("players").orderBy("respect", "desc").limit(50).get();
     return snap.docs.map(function (d) { var v = d.data() || {}; v._id = d.id; return v; });
   } catch (e) { return []; }
 };
 
-/* Raid another player's saved empire. Resolved with our rating vs theirs. */
+/* ---- raid another player ------------------------------------------------ */
 T.online.raid = async function (target) {
   if (!T.online.writable()) return { ok: false, reason: "no-write" };
   if (!target || !target._id || target._id === T.online.uid) return { ok: false, reason: "bad-target" };
   var s = T.state, myPower = T.empire.playerPower(), theirPower = target.power || 0;
-  var win = (myPower > theirPower) || (Math.random() < 0.3); // outrank = sure win; else underdog chance
+  var win = (myPower > theirPower) || (Math.random() < 0.3);
   var loot = 0;
-  if (win) {
-    loot = Math.max(1, Math.round((target.level || 1) * 60 + (theirPower || 0))) * T.pack().priceScale;
-    s.player.cash += loot; s.player.respect += 15;
-  } else {
-    s.player.respect = Math.max(0, s.player.respect - 8);
-    s.resources.health = clamp(s.resources.health - T.empire.mitigate(randi(10, 25)), 0, s.resources.healthMax);
-  }
+  if (win) { loot = Math.max(1, Math.round((target.level || 1) * 60 + theirPower)) * T.pack().priceScale; s.player.cash += loot; s.player.respect += 15; }
+  else { s.player.respect = Math.max(0, s.player.respect - 8); s.resources.health = clamp(s.resources.health - T.empire.mitigate(randi(10, 25)), 0, s.resources.healthMax); }
   try {
-    await T.online.db.collection("raids").add({
-      attacker: T.online.uid,
-      attackerName: String(s.player.name || "A rival").slice(0, 24),
-      defenderId: target._id, win: win, loot: loot, ts: now()
-    });
-  } catch (e) { /* notify best-effort */ }
-  T.save();
-  T.online.publishProfile();
+    if (T.online.mode === "supabase") {
+      await T.online.sb.from("raids").insert({ attacker: T.online.uid, attacker_name: String(s.player.name || "A rival").slice(0, 24), defender_id: target._id, win: win, loot: loot, ts: new Date().toISOString() });
+    } else {
+      await T.online.db.collection("raids").add({ attacker: T.online.uid, attackerName: String(s.player.name || "A rival").slice(0, 24), defenderId: target._id, win: win, loot: loot, ts: now() });
+    }
+  } catch (e) {}
+  T.save(); T.online.publishProfile();
   return { ok: true, win: win, loot: loot, name: target.name };
 };
 
-/* Apply raids other players made on me since last time, then clear them. */
+/* ---- apply raids made on me, then clear them ---------------------------- */
 T.online.processIncoming = async function () {
   if (!T.online.available()) return null;
   var s = T.state;
+  function applyOne(r) {
+    if (r.win) {
+      var rl = Math.min(s.player.cash, 80 * T.pack().priceScale);
+      s.player.cash -= rl; s.player.respect = Math.max(0, s.player.respect - 10);
+      var owned = Object.keys(s.districts).filter(function (id) { return s.districts[id].owner === "player"; });
+      if (owned.length) { var dd = s.districts[owned[Math.floor(Math.random() * owned.length)]]; dd.control = clamp(dd.control - 10, 0, 100); }
+      return { lostCash: rl, lost: 1, name: String(r.attacker_name || r.attackerName || "A rival").slice(0, 24) };
+    }
+    s.player.respect += 3; return { repelled: 1 };
+  }
   try {
-    var snap = await T.online.db.collection("raids").where("defenderId", "==", T.online.uid).limit(50).get();
-    if (snap.empty) return null;
-    var lost = 0, lostCash = 0, repelled = 0, names = [], ids = [];
-    snap.docs.forEach(function (d) {
-      var r = d.data() || {};
-      if (r.win) {
-        var rl = Math.min(s.player.cash, 80 * T.pack().priceScale);
-        s.player.cash -= rl; lostCash += rl;
-        s.player.respect = Math.max(0, s.player.respect - 10); lost++;
-        var owned = Object.keys(s.districts).filter(function (id) { return s.districts[id].owner === "player"; });
-        if (owned.length) { var dd = s.districts[owned[Math.floor(Math.random() * owned.length)]]; dd.control = clamp(dd.control - 10, 0, 100); }
-        names.push(String(r.attackerName || "A rival").slice(0, 24));
-      } else { repelled++; s.player.respect += 3; }
-      ids.push(d.id);
-    });
-    for (var i = 0; i < ids.length; i++) { try { await T.online.db.doc("raids/" + ids[i]).delete(); } catch (e) {} }
+    var rows = [], ids = [];
+    if (T.online.mode === "supabase") {
+      var r = await T.online.sb.from("raids").select("*").eq("defender_id", T.online.uid).limit(50);
+      rows = r.data || []; ids = rows.map(function (x) { return x.id; });
+    } else {
+      var snap = await T.online.db.collection("raids").where("defenderId", "==", T.online.uid).limit(50).get();
+      rows = snap.docs.map(function (d) { var v = d.data() || {}; v.id = d.id; return v; }); ids = rows.map(function (x) { return x.id; });
+    }
+    if (!rows.length) return null;
+    var sum = { lost: 0, lostCash: 0, repelled: 0, names: [] };
+    rows.forEach(function (r) { var o = applyOne(r); if (o.lost) { sum.lost += o.lost; sum.lostCash += o.lostCash; sum.names.push(o.name); } if (o.repelled) sum.repelled += o.repelled; });
+    // clear processed raids
+    if (T.online.mode === "supabase") { try { await T.online.sb.from("raids").delete().in("id", ids); } catch (e) {} }
+    else { for (var i = 0; i < ids.length; i++) { try { await T.online.db.doc("raids/" + ids[i]).delete(); } catch (e) {} } }
     T.save();
-    return { lost: lost, lostCash: lostCash, repelled: repelled, names: names };
+    return sum;
   } catch (e) { return null; }
 };
 
-function randi(a, b) { return Math.floor(a + Math.random() * (b - a + 1)); }
-
-/* Run on load: connect, publish, and apply any raids that landed while away. */
+/* ---- on load: connect, publish, apply incoming raids -------------------- */
 T.online.onLoad = function () {
   T.online.init().then(function () {
     if (!T.online.available()) return;
@@ -136,8 +198,7 @@ T.online.onLoad = function () {
     T.online.processIncoming().then(function (sum) {
       if (!sum || (!sum.lost && !sum.repelled)) return;
       var msg = "";
-      if (sum.lost) msg += "You were raided " + sum.lost + " time" + (sum.lost > 1 ? "s" : "") +
-        " (" + (sum.names.slice(0, 3).join(", ")) + ") — lost " + T.money(sum.lostCash) + " and some Respect & turf. ";
+      if (sum.lost) msg += "You were raided " + sum.lost + " time" + (sum.lost > 1 ? "s" : "") + " (" + sum.names.slice(0, 3).join(", ") + ") — lost " + T.money(sum.lostCash) + " plus Respect & turf. ";
       if (sum.repelled) msg += "You repelled " + sum.repelled + " raid" + (sum.repelled > 1 ? "s" : "") + " (+Respect).";
       T.ui.screen("Raids while you were away", msg, "Settle up", function () { if (T.game.mode === "empire") T.empire.render(); });
     });

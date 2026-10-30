@@ -1277,14 +1277,15 @@ T.empire.tabWorld = function (body) {
 
   T.online.init().then(function () {
     box.innerHTML = "";
-    if (!window.claude || !window.claude.use) {
-      box.appendChild(el("div", "kpi", "🌐 Online play lights up when you open the <strong>shared</strong> game link in claude.ai — it's off on a local file."));
-      return;
-    }
     if (!T.online.available()) {
-      box.appendChild(el("div", "kpi", "🌐 Couldn't reach the world (you may be signed out, or the page isn't shared yet). Single-player still works fully."));
+      var m = "🌐 Online is off right now. ";
+      if (T.online.error) m += esc(T.online.error);
+      else if (!window.claude || !window.claude.use) m += "Open the <strong>shared</strong> game link in claude.ai (it's off on a local file), or set up Supabase below for open multiplayer.";
+      else m += "You may be signed out or the page isn't shared yet. Set up Supabase below for open multiplayer where everyone can join.";
+      box.appendChild(el("div", "kpi", m));
       return;
     }
+    box.appendChild(el("p", "muted small", "Backend: <strong>" + T.online.backendLabel() + "</strong>" + (T.online.mode === "db" ? " — public-link players are read-only; set up Supabase below for fully open multiplayer." : "")));
     T.online.publishProfile();
 
     var meKpi = el("div", "kpi");
@@ -1330,6 +1331,26 @@ T.empire.tabWorld = function (body) {
       });
     });
   });
+
+  // --- Open multiplayer (Supabase) setup — always visible ---
+  var cfg = T.online.supabaseConfig();
+  var setup = el("div", "card"); setup.style.marginTop = "16px";
+  setup.appendChild(el("h4", null, "⚙️ Open multiplayer (Supabase)"));
+  setup.appendChild(el("p", "muted small", cfg
+    ? "Supabase is configured. For <strong>all</strong> players, the owner bakes the same URL + anon key into the game (js/config.js) and republishes — a per-device entry only connects this device."
+    : "Lets <strong>any</strong> player on the shared link post and raid. 1) Make a free project at supabase.com. 2) In its SQL Editor, run <code>turf/supabase/schema.sql</code>. 3) In Project Settings → API, copy the <strong>Project URL</strong> and the <strong>anon public</strong> key. 4) Paste them below to test on this device — and give them to the owner to bake in for everyone."));
+  var urlIn = el("input", "input"); urlIn.placeholder = "https://xxxx.supabase.co"; urlIn.value = cfg ? cfg.url : "";
+  var keyIn = el("input", "input"); keyIn.placeholder = "anon public key"; keyIn.value = cfg ? cfg.key : ""; keyIn.style.marginTop = "8px";
+  setup.appendChild(urlIn); setup.appendChild(keyIn);
+  var save = el("button", "btn", "Save & reconnect"); save.style.marginTop = "8px";
+  save.onclick = function () {
+    var u = (urlIn.value || "").trim(), k = (keyIn.value || "").trim();
+    if (!/^https:\/\/.+\.supabase\.co/.test(u) || k.length < 20) { T.toast("Enter a valid Supabase URL and anon key", "warn"); return; }
+    T.online.setSupabaseConfig(u, k); T.toast("Saved — reconnecting…", "good"); location.reload();
+  };
+  setup.appendChild(save);
+  if (cfg) { var clr = el("button", "btn btn--ghost", "Clear on this device"); clr.style.marginLeft = "8px"; clr.onclick = function () { T.online.clearSupabaseConfig(); location.reload(); }; setup.appendChild(clr); }
+  body.appendChild(setup);
 };
 
 /* Recruit an added friend into the crew as a loyal lackey. */
