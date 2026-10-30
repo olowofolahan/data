@@ -71,7 +71,9 @@ Empire dashboard.
   app. Because the game runs on a **private** link, you first make it shareable
   via the page's **Share** menu and **paste that link** into the invite (it's
   remembered after that); otherwise friends get "page not found." The sandboxed
-  page can't send mail itself, and your list is saved on your device.
+  page can't send mail itself, and your list is saved on your device. You can
+  also **Recruit a friend as a lackey** — a loyal crew member named after them
+  (single-player, so it's a local crew member, not live co-op).
 - **Energy & stamina:** energy holds **100** and refills **40 per hour** (1 every
   90s); stamina holds **50** and regenerates over time. In the **Fight** tab you
   can also buy **street food** (+12) or a **romantic indulgence** (+45) to top up

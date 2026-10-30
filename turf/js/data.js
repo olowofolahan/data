@@ -45,7 +45,8 @@ TURF.CREW_ROLES = {
   driver:   { label: "Driver",        desc: "Faster getaways and deliveries.",          atk: 3, def: 4, wage: 3,  hireRespect: 10 },
   hacker:   { label: "Hacker",        desc: "Lowers Heat, unlocks heists.",             atk: 2, def: 3, wage: 5,  hireRespect: 40 },
   fixer:    { label: "Fixer",         desc: "Cheaper bribes and better prices.",        atk: 2, def: 6, wage: 5,  hireRespect: 40 },
-  official: { label: "Gov't official", desc: "Opens doors: +25% business income and +15% job payouts.", atk: 1, def: 4, wage: 9, hireRespect: 90 }
+  official: { label: "Gov't official", desc: "Opens doors: +25% business income and +15% job payouts.", atk: 1, def: 4, wage: 9, hireRespect: 90 },
+  lackey:   { label: "Lackey",         desc: "A loyal friend running errands for the crew.", atk: 4, def: 4, wage: 2, hireRespect: 0 }
 };
 
 /* -------------------------------------------------------------------------- */

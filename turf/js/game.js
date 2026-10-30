@@ -770,9 +770,10 @@ T.empire.whistleBlow = function (job) {
 T.empire.tabCrew = function (body) {
   var s = T.state;
   body.appendChild(el("p", "muted", "Crew add attack & defence in fights and can be assigned to defend districts. They draw a weekly wage at upkeep."));
-  // hire options
+  // hire options (lackeys are recruited from the Friends tab, not hired here)
   var hire = el("div", "cards");
   Object.keys(T.CREW_ROLES).forEach(function (roleKey) {
+    if (roleKey === "lackey") return;
     var role = T.CREW_ROLES[roleKey];
     var cost = (role.wage * 60) * T.pack().priceScale;
     var card = el("div", "card");
@@ -1266,9 +1267,24 @@ T.empire.inviteFriend = function (friend) {
     onSent: function () { friend.invited = true; friend.invitedAt = now(); T.save(); T.empire.render(); }
   });
 };
+/* Recruit an added friend into the crew as a loyal lackey. */
+T.empire.recruitLackey = function (f) {
+  var s = T.state;
+  if (s.crew.some(function (c) { return c.friendId === f.id; })) { T.toast("Already in your crew", "warn"); return; }
+  var role = T.CREW_ROLES.lackey;
+  var name = (f.name || f.email.split("@")[0]).slice(0, 16);
+  s.crew.push({
+    id: "c_" + Math.random().toString(36).slice(2, 7), friendId: f.id,
+    name: name, role: "lackey", attack: role.atk, defense: role.def,
+    loyalty: 90, wage: role.wage, assignedDistrict: null
+  });
+  T.toast(name + " joined your crew as a lackey 🤝", "good");
+  T.save(); T.empire.render();
+};
+
 T.empire.tabFriends = function (body) {
   var s = T.state;
-  body.appendChild(el("p", "muted", "Add friends by email, then Send invite to get a ready-made message you can copy or open in your mail app — nothing is sent from the game itself. Your list is saved on this device."));
+  body.appendChild(el("p", "muted", "Add friends by email, Send invite to get a ready-made message to copy or mail, and Recruit as lackey to bring a friend into your crew as a loyal member. Your list is saved on this device."));
   body.appendChild(el("p", "muted small", "Note: you're on a private link — a friend can open it only after you share it from the game page's Share menu."));
 
   // add form
@@ -1295,15 +1311,27 @@ T.empire.tabFriends = function (body) {
 
   var list = el("div", "cards");
   s.friends.forEach(function (f) {
+    var recruited = s.crew.some(function (c) { return c.friendId === f.id; });
     var card = el("div", "card");
     card.innerHTML = "<h4>" + (f.name || f.email) + "</h4>" +
-      "<div class='muted small'>" + f.email + (f.invited ? " · ✅ invited" : "") + "</div>";
+      "<div class='muted small'>" + f.email + (f.invited ? " · ✅ invited" : "") + (recruited ? " · 🤝 lackey in your crew" : "") + "</div>";
     var row = el("div", "row");
-    var inv = el("button", "btn", f.invited ? "Invite again" : "Send invite");
+    var inv = el("button", "btn btn--ghost", f.invited ? "Invite again" : "Send invite");
     inv.onclick = function () { T.empire.inviteFriend(f); };
+    row.appendChild(inv);
+    if (!recruited) {
+      var rec = el("button", "btn", "Recruit as lackey");
+      rec.title = "Adds a loyal crew member named after your friend";
+      rec.onclick = function () { T.empire.recruitLackey(f); };
+      row.appendChild(rec);
+    } else {
+      var inCrew = el("button", "btn btn--ghost", "In your crew ✓");
+      inCrew.disabled = true;
+      row.appendChild(inCrew);
+    }
     var rm = el("button", "btn btn--danger", "Remove");
     rm.onclick = function () { s.friends = s.friends.filter(function (x) { return x.id !== f.id; }); T.save(); T.empire.render(); };
-    row.appendChild(inv); row.appendChild(rm);
+    row.appendChild(rm);
     card.appendChild(row);
     list.appendChild(card);
   });
