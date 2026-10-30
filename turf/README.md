@@ -61,9 +61,10 @@ Empire dashboard.
     per level), like upgrading a property.
   - Every shop shows the required **rank** (name + level) to unlock, and your
     current rank/number is in the header.
-- **Friends:** add friends by email and **invite them by email** — the invite
-  opens your own mail app with the message and game link ready (the list is saved
-  on your device).
+- **Friends:** add friends by email and **invite them** — Send invite opens a
+  ready-made message you can **copy** (email, WhatsApp, SMS) or open in your mail
+  app. (The sandboxed game page can't send mail itself, so the invite is
+  copy-or-tap rather than an automatic email.) The list is saved on your device.
 - **Energy & stamina:** energy holds **100** and refills **40 per hour** (1 every
   90s); stamina holds **50** and regenerates over time. In the **Fight** tab you
   can also buy **street food** (+12) or a **romantic indulgence** (+45) to top up

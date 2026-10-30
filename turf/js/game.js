@@ -1237,16 +1237,15 @@ T.empire.inviteFriend = function (friend) {
     s.player.name + " here. I'm building a syndicate in Turf (a top-down crime sim you play in the browser) in " +
     T.pack().city + ". Come start your own crew and let's see who takes the city.\n\nPlay here: " + link +
     "\n\nSee you on the streets.\n- " + s.player.name;
-  var href = "mailto:" + encodeURIComponent(friend.email) +
-    "?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body);
-  friend.invited = true; friend.invitedAt = now(); T.save();
-  try { window.location.href = href; } catch (e) { window.open(href, "_blank"); }
-  T.toast("Opening your email app…", "good");
-  T.empire.render();
+  T.ui.invite({
+    title: friend.name || friend.email, to: friend.email, subject: subject, body: body,
+    onSent: function () { friend.invited = true; friend.invitedAt = now(); T.save(); T.empire.render(); }
+  });
 };
 T.empire.tabFriends = function (body) {
   var s = T.state;
-  body.appendChild(el("p", "muted", "Add friends by email and invite them to play. Invites open your own email app with the message ready — nothing is sent from the game itself, and your list is saved on this device."));
+  body.appendChild(el("p", "muted", "Add friends by email, then Send invite to get a ready-made message you can copy or open in your mail app — nothing is sent from the game itself. Your list is saved on this device."));
+  body.appendChild(el("p", "muted small", "Note: you're on a private link — a friend can open it only after you share it from the game page's Share menu."));
 
   // add form
   var form = el("div", "card");
@@ -1289,17 +1288,16 @@ T.empire.tabFriends = function (body) {
   // invite everyone not yet invited
   var pending = s.friends.filter(function (f) { return !f.invited; });
   if (pending.length > 1) {
-    var all = el("button", "btn btn--ghost", "Email all " + pending.length + " uninvited");
+    var all = el("button", "btn btn--ghost", "Invite all " + pending.length + " uninvited");
     all.style.marginTop = "12px";
     all.onclick = function () {
       var link = T.empire.inviteLink();
-      var to = pending.map(function (f) { return f.email; }).join(",");
-      var href = "mailto:" + encodeURIComponent(to) + "?subject=" + encodeURIComponent("Come play Turf with me") +
-        "&body=" + encodeURIComponent("Come start a crew in Turf: " + link + "\n- " + s.player.name);
-      pending.forEach(function (f) { f.invited = true; f.invitedAt = now(); });
-      T.save();
-      try { window.location.href = href; } catch (e) { window.open(href, "_blank"); }
-      T.empire.render();
+      var body2 = "Come start a crew in Turf (a browser crime sim). Play here: " + link + "\n\n- " + s.player.name;
+      T.ui.invite({
+        title: pending.length + " friends", to: pending.map(function (f) { return f.email; }).join(","),
+        subject: "Come play Turf with me", body: body2,
+        onSent: function () { pending.forEach(function (f) { f.invited = true; f.invitedAt = now(); }); T.save(); T.empire.render(); }
+      });
     };
     body.appendChild(all);
   }

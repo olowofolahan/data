@@ -248,6 +248,49 @@ T.ui.prompt = function (opts) {
   return back;
 };
 
+/* ---- Invite overlay ----------------------------------------------------- */
+/* The game page runs sandboxed, so we can't reliably trigger the email client
+ * programmatically. Instead we show the ready-made message with a Copy button
+ * and a tappable mailto link the player can use in any app. */
+T.ui.invite = function (opts) {
+  var mailto = "mailto:" + encodeURIComponent(opts.to || "") +
+    "?subject=" + encodeURIComponent(opts.subject || "") + "&body=" + encodeURIComponent(opts.body || "");
+  var node = el("div");
+  node.appendChild(el("h2", null, "Invite " + (opts.title || "a friend")));
+  node.appendChild(el("p", "muted", "Copy this and send it however you like (email, WhatsApp, SMS), or tap the mail link. The game can't send it for you."));
+
+  var ta = el("textarea", "input"); ta.rows = 7; ta.readOnly = true; ta.value = opts.body || "";
+  node.appendChild(ta);
+
+  var copy = el("button", "btn btn--big", "📋 Copy invite");
+  copy.onclick = function () {
+    var done = function () { copy.textContent = "✓ Copied"; T.toast("Invite copied", "good"); if (opts.onSent) opts.onSent(); };
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(ta.value).then(done, function () { fallback(); });
+      } else fallback();
+    } catch (e) { fallback(); }
+    function fallback() {
+      try { ta.focus(); ta.select(); document.execCommand("copy"); done(); }
+      catch (e2) { T.toast("Select the text and copy it", "warn"); }
+    }
+  };
+  node.appendChild(copy);
+
+  var a = el("a", "btn btn--ghost btn--big", "✉️ Open email app");
+  a.href = mailto; a.target = "_blank"; a.rel = "noopener";
+  a.style.display = "block"; a.style.textAlign = "center"; a.style.textDecoration = "none";
+  a.onclick = function () { if (opts.onSent) opts.onSent(); };
+  node.appendChild(a);
+
+  var close = el("button", "btn btn--ghost btn--big", "Close");
+  close.onclick = function () { back.close(); };
+  node.appendChild(close);
+  var back = overlay(node, true);
+  setTimeout(function () { try { ta.focus(); ta.select(); } catch (e) {} }, 60);
+  return back;
+};
+
 /* ---- Clinic (knocked out in an Empire fight) --------------------------- */
 T.ui.clinic = function () {
   var fee = 80 * T.pack().priceScale;
