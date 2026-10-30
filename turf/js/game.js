@@ -81,6 +81,7 @@ T.newGame = function (country, name, look) {
     lastRivalTick: t,
     bonusNextJob: 0,              // from "hot tip" event
     protectionBonus: 1,          // from "market day" event
+    rivalStatus: {},
     stats: { jobsDone: 0, mastery: {}, fights: 0 },
     tutorialStep: 0,
     createdAt: t
@@ -112,6 +113,7 @@ T.ensureDefaults = function () {
   if (!s.ammo) s.ammo = {};
   if (!s.equipped || !s.weapons[s.equipped]) s.equipped = "fist";
   if (!s.friends) s.friends = [];
+  if (!s.rivalStatus) s.rivalStatus = {};
   if (s.shareLink == null) s.shareLink = "";
   if (!s.gear) s.gear = {};
   // Gear now stores a level number; migrate older `true` flags to level 1.
@@ -305,7 +307,10 @@ T.sim.rivalTick = function () {
   var dMeta = T.pack().districts.filter(function (d) { return d.id === weakest; })[0];
   var dName = dMeta.name;
   var crew = crewIn(weakest);
-  var rival = pick(T.empire.activeRivals());
+  // Exhausted gangs can't raid — they're still recovering their stamina.
+  var pool = T.empire.activeRivals().filter(function (r) { return !T.sim.rivalExhausted(r.id); });
+  if (!pool.length) return; // every active gang is worn down — quiet for now
+  var rival = pick(pool);
   var rivalIdx = T.empire.rivalIndex(rival.id);
 
   // If you outrank this gang, the raid fails and THEY take the loss.
@@ -355,6 +360,38 @@ T.sim.rivalTick = function () {
 function crewIn(districtId) {
   return T.state.crew.filter(function (c) { return c.assignedDistrict === districtId; }).length;
 }
+
+/* Rival gang stamina: beating them drains it; at 0 they're exhausted and need
+ * 6 hours to recover, during which they can't raid your districts. */
+var RIVAL_RECOVER_MS = 6 * 3600 * 1000;
+T.sim.rivalStatus = function (id) {
+  if (!T.state.rivalStatus) T.state.rivalStatus = {};
+  var st = T.state.rivalStatus[id];
+  if (!st) { st = { stam: 100, lastAt: now(), exhaustedUntil: 0 }; T.state.rivalStatus[id] = st; }
+  var t = now();
+  if (st.exhaustedUntil) {
+    if (t >= st.exhaustedUntil) { st.stam = 100; st.exhaustedUntil = 0; st.lastAt = t; }
+    else { st.stam = 0; }
+  } else {
+    var hrs = (t - st.lastAt) / 3600000;
+    if (hrs > 0) { st.stam = clamp(st.stam + hrs * (100 / 6), 0, 100); st.lastAt = t; }
+  }
+  return st;
+};
+T.sim.rivalStamina = function (id) { return Math.round(T.sim.rivalStatus(id).stam); };
+T.sim.rivalExhausted = function (id) { var st = T.sim.rivalStatus(id); return st.stam <= 0 && st.exhaustedUntil > 0; };
+T.sim.rivalRecoverMs = function (id) { var st = T.sim.rivalStatus(id); return st.exhaustedUntil ? Math.max(0, st.exhaustedUntil - now()) : 0; };
+T.sim.drainRival = function (id, amt) {
+  var st = T.sim.rivalStatus(id);
+  if (st.exhaustedUntil) return false; // already down
+  st.stam -= amt; st.lastAt = now();
+  if (st.stam <= 0) { st.stam = 0; st.exhaustedUntil = now() + RIVAL_RECOVER_MS; return true; }
+  return false;
+};
+T.fmtDur = function (ms) {
+  var m = Math.max(0, Math.round(ms / 60000)), h = Math.floor(m / 60);
+  return (h > 0 ? h + "h " : "") + (m % 60) + "m";
+};
 
 /* XP / level up. */
 T.sim.addXp = function (xp) {
@@ -1056,7 +1093,7 @@ T.empire.staminaRefuel = function (body) {
 
 T.empire.tabFight = function (body) {
   var s = T.state, pk = T.pack();
-  body.appendChild(el("p", "muted", "Attack a rival crew. Your Rating (Attack + Defence + Respect) vs their Power decides it — outrank a gang and you can't lose. Your Defence cuts any damage you take."));
+  body.appendChild(el("p", "muted", "Attack a rival crew. Your Rating (Attack + Defence + Respect) vs their Power decides it — outrank a gang and you can't lose. Your Defence cuts any damage you take. Each hit drains their stamina; drain it to 0 and they're exhausted — they can't raid your districts for 6 hours."));
   var myAtk = T.empire.fightStrength(), myDef = T.empire.playerDefense(), myPow = T.empire.playerPower();
   var w = T.weaponById(s.equipped), g = T.empire.gearEquipped();
   body.appendChild(el("div", "kpi", "⚔️ Attack: <strong>" + myAtk + "</strong> · 🛡️ Defence: <strong>" + myDef + "</strong> · 👑 Respect: <strong>" + Math.round(s.player.respect) + "</strong><br>📊 Your rating: <strong>" + myPow + "</strong> · Weapon: " + w.name + " · Gear: " + (g ? g.name + " Lv " + g.level : "none") + " · Stamina " + Math.floor(s.resources.stamina) + "/" + s.resources.staminaMax));
@@ -1076,10 +1113,14 @@ T.empire.tabFight = function (body) {
       list.appendChild(card);
       return;
     }
+    var rstam = T.sim.rivalStamina(r.id), exhausted = T.sim.rivalExhausted(r.id);
     card.innerHTML = "<h4><span class='dot' style='background:" + r.color + "'></span>" + r.name + "</h4>" +
       "<div class='muted small'>Power ~" + rivalPow + " · Defence ~" + def + "</div>" +
-      "<div class='small " + (outrank ? "ok" : "risk") + "'>" + (outrank ? "✅ You outrank them — guaranteed win" : "⚠️ They outrank you — risky") + "</div>";
-    var b = el("button", "btn", "Attack (3 stamina)");
+      "<div class='small " + (outrank ? "ok" : "risk") + "'>" + (outrank ? "✅ You outrank them — guaranteed win" : "⚠️ They outrank you — risky") + "</div>" +
+      "<div class='muted small'>Their stamina " + rstam + "%</div>" +
+      "<div class='meter'><div class='meter-fill' style='width:" + rstam + "%;background:" + (exhausted ? "#c0392b" : "#e0a93f") + "'></div></div>" +
+      (exhausted ? "<div class='small ok'>😵 Exhausted — can't raid you. Recovers in " + T.fmtDur(T.sim.rivalRecoverMs(r.id)) + "</div>" : "");
+    var b = el("button", "btn", exhausted ? "Finish them off (3 stamina)" : "Attack (3 stamina)");
     b.disabled = s.resources.stamina < 3;
     b.onclick = function () {
       s.resources.stamina -= 3; s.stats.fights++;
@@ -1088,11 +1129,14 @@ T.empire.tabFight = function (body) {
         var loot = randint(100, 400) * T.pack().priceScale + def * 3 * T.pack().priceScale;
         s.player.cash += loot; s.player.respect += 15; s.player.heat = clamp(s.player.heat + 8, 0, 100);
         T.sim.addXp(20);
+        var ko = T.sim.drainRival(r.id, 40);
         T.toast("Beat " + r.name + "! +" + T.money(loot) + ", +15 Respect", "good");
+        if (ko) T.toast(r.name + " is exhausted — they can't raid you for 6h", "good");
       } else {
         var dmg = T.empire.mitigate(randint(10, 30));
         s.resources.health = clamp(s.resources.health - dmg, 0, s.resources.healthMax);
         s.player.respect = Math.max(0, s.player.respect - 8);
+        T.sim.drainRival(r.id, 18); // you still wore them down a bit
         T.toast("Lost the fight with " + r.name + " (−" + dmg + " health)", "bad");
         if (s.resources.health <= 0) T.ui.clinic();
       }

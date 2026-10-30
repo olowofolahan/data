@@ -48,6 +48,9 @@ Empire dashboard.
 - **Rival gangs grow with you:** each city has **9 gangs**, and more **emerge as
   you level up** (3 at the start, up to all 9 by Lv 45) — shown as locked
   "Emerges at Lv N" cards until they appear.
+- **Wear gangs down:** every hit in the Fight tab drains the target gang's
+  **stamina**; drain it to 0 and they're **exhausted** — they can't raid your
+  districts and need **6 hours** to recover (shown as a bar + countdown).
 - **Rating vs rival power:** your rating is **Attack + Defence + Respect**; each
   gang has a Power that scales with its rank and your level. **When you outrank a
   gang they can't take your district and can't beat you in a fight — and they
