@@ -37,12 +37,17 @@ Empire dashboard.
   - **Whistle-blow on rivals** (available from the start) — tip the law for an
     informant fee and chip at a rival's turf, with a small chance a rival learns
     you snitched and retaliates.
-- **Crew** (4 roles, loyalty, wages, district assignment) — gift, **raise wages
-  to boost loyalty**, or **fire** a member.
+- **Crew** (5 roles: Muscle, Driver, Hacker, Fixer, and a **Gov't official** who
+  expands business — **+25% property/district income and +15% job payouts**;
+  loyalty, wages, district assignment) — gift, **raise wages to boost loyalty**,
+  or **fire** a member.
 - **Properties** (buy/upgrade, timed income), **Districts** (0–100% control,
   takeover, and **turf wars** resolved with your strength). When a district is
   slipping, the card and the alert **tell you why** (which rival raided it, no
   crew defending, high-danger area, high Heat). **Fight** (attack rival gangs).
+- **Rival gangs grow with you:** each city has **9 gangs**, and more **emerge as
+  you level up** (3 at the start, up to all 9 by Lv 45) — shown as locked
+  "Emerges at Lv N" cards until they appear.
 - **Rating vs rival power:** your rating is **Attack + Defence + Respect**; each
   gang has a Power that scales with its rank and your level. **When you outrank a
   gang they can't take your district and can't beat you in a fight — and they

@@ -41,10 +41,11 @@ TURF.reqLabel = function (minRank) { var r = TURF.rankReq(minRank); return r.nam
 /* Crew roles                                                                 */
 /* -------------------------------------------------------------------------- */
 TURF.CREW_ROLES = {
-  muscle: { label: "Muscle", desc: "Raises attack in fights.",            atk: 8, def: 5, wage: 3,  hireRespect: 0  },
-  driver: { label: "Driver", desc: "Faster getaways and deliveries.",     atk: 3, def: 4, wage: 3,  hireRespect: 10 },
-  hacker: { label: "Hacker", desc: "Lowers Heat, unlocks heists.",        atk: 2, def: 3, wage: 5,  hireRespect: 40 },
-  fixer:  { label: "Fixer",  desc: "Cheaper bribes and better prices.",   atk: 2, def: 6, wage: 5,  hireRespect: 40 }
+  muscle:   { label: "Muscle",        desc: "Raises attack in fights.",                 atk: 8, def: 5, wage: 3,  hireRespect: 0  },
+  driver:   { label: "Driver",        desc: "Faster getaways and deliveries.",          atk: 3, def: 4, wage: 3,  hireRespect: 10 },
+  hacker:   { label: "Hacker",        desc: "Lowers Heat, unlocks heists.",             atk: 2, def: 3, wage: 5,  hireRespect: 40 },
+  fixer:    { label: "Fixer",         desc: "Cheaper bribes and better prices.",        atk: 2, def: 6, wage: 5,  hireRespect: 40 },
+  official: { label: "Gov't official", desc: "Opens doors: +25% business income and +15% job payouts.", atk: 1, def: 4, wage: 9, hireRespect: 90 }
 };
 
 /* -------------------------------------------------------------------------- */
@@ -123,12 +124,15 @@ TURF.COUNTRY_PACKS = {
       { id: "oshodi",   name: "Oshodi Hub",     type: "transport", income: 100, danger: 3, color: "#e05a7a" }
     ],
     rivals: [
-      { id: "eko_boys",      name: "Eko Boys",      color: "#c0392b" },
-      { id: "lagoon_set",    name: "Lagoon Set",    color: "#2980b9" },
-      { id: "area_fathers",  name: "Area Fathers",  color: "#8e44ad" },
-      { id: "island_cartel", name: "Island Cartel", color: "#16a085" },
-      { id: "mushin_vipers", name: "Mushin Vipers", color: "#d35400" },
-      { id: "badoo_set",     name: "Badoo Set",     color: "#7f8c8d" }
+      { id: "eko_boys",       name: "Eko Boys",       color: "#c0392b", minLevel: 1 },
+      { id: "lagoon_set",     name: "Lagoon Set",     color: "#2980b9", minLevel: 1 },
+      { id: "area_fathers",   name: "Area Fathers",   color: "#8e44ad", minLevel: 1 },
+      { id: "island_cartel",  name: "Island Cartel",  color: "#16a085", minLevel: 8 },
+      { id: "mushin_vipers",  name: "Mushin Vipers",  color: "#d35400", minLevel: 15 },
+      { id: "badoo_set",      name: "Badoo Set",      color: "#7f8c8d", minLevel: 22 },
+      { id: "ajah_syndicate", name: "Ajah Syndicate", color: "#e056fd", minLevel: 30 },
+      { id: "creek_pirates",  name: "Creek Pirates",  color: "#0abde3", minLevel: 38 },
+      { id: "oba_cabal",      name: "The Oba Cabal",  color: "#f39c12", minLevel: 45 }
     ],
     npcNames: ["Tunde", "Ngozi", "Emeka", "Bisi", "Chidi", "Funke", "Segun", "Amaka", "Kola", "Yemi"],
     npcLines: ["How far?", "No wahala.", "Abeg shift!", "Na who be this?", "Make we dey go.", "Chop knuckle!"],
@@ -168,12 +172,15 @@ TURF.COUNTRY_PACKS = {
       { id: "station",  name: "Union Station",  type: "transport", income: 100, danger: 3, color: "#e05a7a" }
     ],
     rivals: [
-      { id: "northside",   name: "Northside Crew",  color: "#c0392b" },
-      { id: "rivermen",    name: "The Rivermen",    color: "#2980b9" },
-      { id: "frost_kings", name: "Frost Kings",     color: "#8e44ad" },
-      { id: "oil_barons",  name: "Oil Barons",      color: "#16a085" },
-      { id: "prairie_wolves", name: "Prairie Wolves", color: "#d35400" },
-      { id: "the_combine", name: "The Combine",     color: "#7f8c8d" }
+      { id: "northside",      name: "Northside Crew",  color: "#c0392b", minLevel: 1 },
+      { id: "rivermen",       name: "The Rivermen",    color: "#2980b9", minLevel: 1 },
+      { id: "frost_kings",    name: "Frost Kings",     color: "#8e44ad", minLevel: 1 },
+      { id: "oil_barons",     name: "Oil Barons",      color: "#16a085", minLevel: 8 },
+      { id: "prairie_wolves", name: "Prairie Wolves",  color: "#d35400", minLevel: 15 },
+      { id: "the_combine",    name: "The Combine",     color: "#7f8c8d", minLevel: 22 },
+      { id: "border_run",     name: "Border Run Gang", color: "#e056fd", minLevel: 30 },
+      { id: "iron_sled",      name: "Iron Sled MC",    color: "#0abde3", minLevel: 38 },
+      { id: "the_cartel",     name: "Prairie Cartel",  color: "#f39c12", minLevel: 45 }
     ],
     npcNames: ["Dylan", "Marie", "Chase", "Nicole", "Brett", "Chantal", "Kyle", "Amber", "Shane", "Josee"],
     npcLines: ["How's it goin', eh?", "Cold out.", "Watch the ice.", "Take off.", "Beauty.", "No worries."],

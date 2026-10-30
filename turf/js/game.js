@@ -170,30 +170,34 @@ T.sim.regen = function () {
   if (eGain === 0) T.state.resUpdated = now() - (dt % ENERGY_MS);
 };
 
+/* A Gov't official on the crew expands business: +25% property/district income. */
+T.sim.hasOfficial = function () { return T.state.crew && T.state.crew.some(function (c) { return c.role === "official"; }); };
+T.sim.officialMult = function () { return T.sim.hasOfficial() ? 1.25 : 1; };
+
 /* Pending passive income from properties + owned districts. */
 T.sim.pendingIncome = function () {
-  var total = 0, t = now();
+  var total = 0, t = now(), om = T.sim.officialMult();
   T.state.properties.forEach(function (p) {
     var tpl = T.PROPERTIES.filter(function (x) { return x.id === p.tplId; })[0];
     if (!tpl) return;
     var periods = Math.floor((t - p.lastCollect) / (tpl.everySec * 1000));
     var districtBonus = (T.state.districts[p.districtId] &&
                          T.state.districts[p.districtId].owner === "player") ? 1.25 : 1;
-    total += periods * tpl.income * (p.level) * districtBonus * T.state.protectionBonus;
+    total += periods * tpl.income * (p.level) * districtBonus * T.state.protectionBonus * om;
   });
   // District passive income: pay per real minute of ownership since lastSeen handled at collect.
   return Math.floor(total);
 };
 T.sim.districtIncomePerMin = function () {
-  var pk = T.pack(), per = 0;
+  var pk = T.pack(), per = 0, om = T.sim.officialMult();
   pk.districts.forEach(function (d) {
     var st = T.state.districts[d.id];
     if (st && st.owner === "player") per += d.income * (st.control / 100);
   });
-  return per; // per game-day-ish; applied in collect below
+  return per * om; // per game-day-ish; applied in collect below
 };
 T.sim.collect = function () {
-  var t = now(), gained = 0;
+  var t = now(), gained = 0, om = T.sim.officialMult();
   T.state.properties.forEach(function (p) {
     var tpl = T.PROPERTIES.filter(function (x) { return x.id === p.tplId; })[0];
     if (!tpl) return;
@@ -201,7 +205,7 @@ T.sim.collect = function () {
     if (periods <= 0) return;
     var districtBonus = (T.state.districts[p.districtId] &&
                          T.state.districts[p.districtId].owner === "player") ? 1.25 : 1;
-    gained += periods * tpl.income * p.level * districtBonus * T.state.protectionBonus;
+    gained += periods * tpl.income * p.level * districtBonus * T.state.protectionBonus * om;
     p.lastCollect += periods * tpl.everySec * 1000;
   });
   gained = Math.floor(gained);
@@ -300,7 +304,7 @@ T.sim.rivalTick = function () {
   var dMeta = T.pack().districts.filter(function (d) { return d.id === weakest; })[0];
   var dName = dMeta.name;
   var crew = crewIn(weakest);
-  var rival = pick(T.pack().rivals);
+  var rival = pick(T.empire.activeRivals());
   var rivalIdx = T.empire.rivalIndex(rival.id);
 
   // If you outrank this gang, the raid fails and THEY take the loss.
@@ -576,8 +580,9 @@ T.empire.doJob = function (job) {
   s.resources.energy -= job.energy;
   var pay = randint(job.cashMin, job.cashMax) * T.pack().priceScale;
   if (s.bonusNextJob) { pay = Math.round(pay * (1 + s.bonusNextJob)); s.bonusNextJob = 0; T.toast("Hot tip paid off!", "good"); }
-  // Fixer crew improves prices.
+  // Fixer crew improves prices; a Gov't official opens bigger deals.
   if (s.crew.some(function (c) { return c.role === "fixer"; })) pay = Math.round(pay * 1.1);
+  if (T.sim.hasOfficial()) pay = Math.round(pay * 1.15);
   s.player.cash += pay;
   T.sim.addXp(job.xp);
   s.player.respect += Math.round(job.xp / 4);
@@ -840,6 +845,7 @@ T.empire.tabCrew = function (body) {
 
 T.empire.tabProps = function (body) {
   var s = T.state, rankIdx = T.RANKS.indexOf(T.rankForLevel(s.player.level)) + 1;
+  if (T.sim.hasOfficial()) body.appendChild(el("p", "muted small", "🏛️ A Gov't official on your crew is boosting business income by +25%."));
   var pending = T.sim.pendingIncome();
   var collect = el("div", "banner-collect");
   collect.innerHTML = "<span>Uncollected income: <strong>" + T.money(pending) + "</strong></span>";
@@ -1007,6 +1013,11 @@ T.empire.playerPower = function () {
 };
 T.empire.rivalPower = function (i) { return 40 + i * 30 + T.state.player.level * 4; };
 T.empire.rivalIndex = function (rivalId) { return Math.max(0, T.pack().rivals.map(function (r) { return r.id; }).indexOf(rivalId)); };
+/* Rival gangs that have emerged at the player's level (more unlock as you rank up). */
+T.empire.activeRivals = function () {
+  var lvl = T.state.player.level;
+  return T.pack().rivals.filter(function (r) { return lvl >= (r.minLevel || 1); });
+};
 T.empire.outranks = function (i) { return T.empire.playerPower() > T.empire.rivalPower(i); };
 
 /* Buy a street consumable to restore Stamina. */
@@ -1049,11 +1060,20 @@ T.empire.tabFight = function (body) {
   body.appendChild(el("div", "kpi", "⚔️ Attack: <strong>" + myAtk + "</strong> · 🛡️ Defence: <strong>" + myDef + "</strong> · 👑 Respect: <strong>" + Math.round(s.player.respect) + "</strong><br>📊 Your rating: <strong>" + myPow + "</strong> · Weapon: " + w.name + " · Gear: " + (g ? g.name + " Lv " + g.level : "none") + " · Stamina " + Math.floor(s.resources.stamina) + "/" + s.resources.staminaMax));
   T.empire.staminaRefuel(body);
   body.appendChild(el("h3", null, "Rival crews"));
+  body.appendChild(el("p", "muted small", "More gangs emerge as you rank up."));
   var list = el("div", "cards");
   pk.rivals.forEach(function (r, i) {
     var def = 12 + i * 10 + s.player.level * 2;
     var rivalPow = T.empire.rivalPower(i), outrank = myPow > rivalPow;
     var card = el("div", "card");
+    var emerged = s.player.level >= (r.minLevel || 1);
+    if (!emerged) {
+      card.classList.add("card--locked");
+      card.innerHTML = "<h4><span class='dot' style='background:" + r.color + "'></span>" + r.name + "</h4>" +
+        "<div class='muted small risk'>🔒 Emerges at Lv " + r.minLevel + "</div>";
+      list.appendChild(card);
+      return;
+    }
     card.innerHTML = "<h4><span class='dot' style='background:" + r.color + "'></span>" + r.name + "</h4>" +
       "<div class='muted small'>Power ~" + rivalPow + " · Defence ~" + def + "</div>" +
       "<div class='small " + (outrank ? "ok" : "risk") + "'>" + (outrank ? "✅ You outrank them — guaranteed win" : "⚠️ They outrank you — risky") + "</div>";
