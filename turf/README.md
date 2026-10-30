@@ -43,6 +43,11 @@ Empire dashboard.
   takeover, and **turf wars** resolved with your strength). When a district is
   slipping, the card and the alert **tell you why** (which rival raided it, no
   crew defending, high-danger area, high Heat). **Fight** (attack rival gangs).
+- **Rating vs rival power:** your rating is **Attack + Defence + Respect**; each
+  gang has a Power that scales with its rank and your level. **When you outrank a
+  gang they can't take your district and can't beat you in a fight — and they
+  take a loss for trying** (their own turf gets hit). The Fight tab shows both
+  numbers and flags whether you outrank each gang.
 - **Arsenal:** two equip slots — a **weapon** (Attack) and a piece of **gear**
   (Defence, some also Attack).
   - Weapons: melee (fists → bat → machete), firearms (pistol → SMG → shotgun),

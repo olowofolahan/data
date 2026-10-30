@@ -301,6 +301,27 @@ T.sim.rivalTick = function () {
   var dName = dMeta.name;
   var crew = crewIn(weakest);
   var rival = pick(T.pack().rivals);
+  var rivalIdx = T.empire.rivalIndex(rival.id);
+
+  // If you outrank this gang, the raid fails and THEY take the loss.
+  if (T.empire.outranks(rivalIdx)) {
+    st.control = clamp(st.control + 2, 0, 100);
+    st.lastDrop = { rival: rival.name, amount: 0, crew: crew, reasons: ["you outrank them — raid repelled"], at: now(), repelled: true };
+    T.state.player.respect += 5;
+    // Punish the attacker on their own turf.
+    var rh = Object.keys(T.state.districts).filter(function (id) { return T.state.districts[id].owner === rival.id; });
+    var extra = "";
+    if (rh.length) {
+      var rid = pick(rh), rd = T.state.districts[rid];
+      rd.control = clamp(rd.control - randint(12, 28), 0, 100);
+      if (rd.control <= 0) { rd.owner = null; rd.control = randint(0, 15); }
+      var rmeta = T.pack().districts.filter(function (d) { return d.id === rid; })[0];
+      extra = " You hit back at their hold on " + rmeta.name + ".";
+    }
+    T.toast(rival.name + " tried to raid " + dName + " but you're too strong — they took a loss." + extra, "good");
+    if (T.game.mode === "empire" && T.empire.tab === "districts") T.empire.render();
+    return;
+  }
 
   // Work out the drop and the contributing reasons, so we can tell the player why.
   var reasons = [];
@@ -900,8 +921,12 @@ T.empire.tabDistricts = function (body) {
       card.appendChild(status);
       if (st.lastDrop && now() - st.lastDrop.at < 15 * 60 * 1000) {
         var ld = st.lastDrop;
-        card.appendChild(el("div", "small risk",
-          "Losing control: " + ld.rival + " took " + ld.amount + "% — " + ld.reasons.join(", ") + "."));
+        if (ld.repelled) {
+          card.appendChild(el("div", "small ok", "💪 Held off " + ld.rival + " — you outrank them, raid repelled."));
+        } else {
+          card.appendChild(el("div", "small risk",
+            "Losing control: " + ld.rival + " took " + ld.amount + "% — " + ld.reasons.join(", ") + "."));
+        }
       }
     }
     if (st.owner !== "player") {
@@ -974,6 +999,15 @@ T.empire.playerDefense = function () {
 T.empire.mitigate = function (dmg) {
   return Math.max(3, Math.round(dmg - T.empire.playerDefense() / 4));
 };
+/* Overall rating = Attack + Defence + Respect. A rival's power scales with its
+ * rank (index) and your level. If your rating beats a rival's power, they can't
+ * take your turf or beat you — and they take a loss for trying. */
+T.empire.playerPower = function () {
+  return T.empire.fightStrength() + T.empire.playerDefense() + Math.round(T.state.player.respect);
+};
+T.empire.rivalPower = function (i) { return 40 + i * 30 + T.state.player.level * 4; };
+T.empire.rivalIndex = function (rivalId) { return Math.max(0, T.pack().rivals.map(function (r) { return r.id; }).indexOf(rivalId)); };
+T.empire.outranks = function (i) { return T.empire.playerPower() > T.empire.rivalPower(i); };
 
 /* Buy a street consumable to restore Stamina. */
 T.empire.buyConsumable = function (c) {
@@ -1009,24 +1043,26 @@ T.empire.staminaRefuel = function (body) {
 
 T.empire.tabFight = function (body) {
   var s = T.state, pk = T.pack();
-  body.appendChild(el("p", "muted", "Attack a rival crew. Your Attack vs their defence decides the win; your Defence cuts the damage you take when it goes wrong. Build both in the Arsenal and Crew tabs."));
-  var myAtk = T.empire.fightStrength(), myDef = T.empire.playerDefense();
+  body.appendChild(el("p", "muted", "Attack a rival crew. Your Rating (Attack + Defence + Respect) vs their Power decides it — outrank a gang and you can't lose. Your Defence cuts any damage you take."));
+  var myAtk = T.empire.fightStrength(), myDef = T.empire.playerDefense(), myPow = T.empire.playerPower();
   var w = T.weaponById(s.equipped), g = T.empire.gearEquipped();
-  body.appendChild(el("div", "kpi", "⚔️ Attack: <strong>" + myAtk + "</strong> · 🛡️ Defence: <strong>" + myDef + "</strong> · Weapon: " + w.name + " · Gear: " + (g ? g.name + " Lv " + g.level : "none") + " · Stamina " + Math.floor(s.resources.stamina) + "/" + s.resources.staminaMax));
+  body.appendChild(el("div", "kpi", "⚔️ Attack: <strong>" + myAtk + "</strong> · 🛡️ Defence: <strong>" + myDef + "</strong> · 👑 Respect: <strong>" + Math.round(s.player.respect) + "</strong><br>📊 Your rating: <strong>" + myPow + "</strong> · Weapon: " + w.name + " · Gear: " + (g ? g.name + " Lv " + g.level : "none") + " · Stamina " + Math.floor(s.resources.stamina) + "/" + s.resources.staminaMax));
   T.empire.staminaRefuel(body);
   body.appendChild(el("h3", null, "Rival crews"));
   var list = el("div", "cards");
   pk.rivals.forEach(function (r, i) {
     var def = 12 + i * 10 + s.player.level * 2;
+    var rivalPow = T.empire.rivalPower(i), outrank = myPow > rivalPow;
     var card = el("div", "card");
     card.innerHTML = "<h4><span class='dot' style='background:" + r.color + "'></span>" + r.name + "</h4>" +
-      "<div class='muted small'>Defence ~" + def + "</div>";
+      "<div class='muted small'>Power ~" + rivalPow + " · Defence ~" + def + "</div>" +
+      "<div class='small " + (outrank ? "ok" : "risk") + "'>" + (outrank ? "✅ You outrank them — guaranteed win" : "⚠️ They outrank you — risky") + "</div>";
     var b = el("button", "btn", "Attack (3 stamina)");
     b.disabled = s.resources.stamina < 3;
     b.onclick = function () {
       s.resources.stamina -= 3; s.stats.fights++;
-      var roll = myAtk + rand(-8, 8) - def;
-      if (roll > 0) {
+      var win = outrank || (myAtk + rand(-8, 8) - def > 0);
+      if (win) {
         var loot = randint(100, 400) * T.pack().priceScale + def * 3 * T.pack().priceScale;
         s.player.cash += loot; s.player.respect += 15; s.player.heat = clamp(s.player.heat + 8, 0, 100);
         T.sim.addXp(20);
