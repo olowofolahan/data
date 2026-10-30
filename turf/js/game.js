@@ -510,7 +510,7 @@ T.empire.render = function () {
   tabs.innerHTML = "";
   var defs = [["jobs", "Jobs"], ["crew", "Crew"], ["properties", "Properties"],
               ["districts", "Districts"], ["fight", "Fight"], ["arsenal", "Arsenal"],
-              ["friends", "Friends"], ["inventory", "Inventory"], ["profile", "Profile"]];
+              ["world", "World"], ["friends", "Friends"], ["inventory", "Inventory"], ["profile", "Profile"]];
   defs.forEach(function (d) {
     var b = el("button", "tab" + (T.empire.tab === d[0] ? " tab--on" : ""), d[1]);
     b.onclick = function () { T.empire.tab = d[0]; T.empire.render(); };
@@ -520,7 +520,7 @@ T.empire.render = function () {
   body.innerHTML = "";
   ({ jobs: T.empire.tabJobs, crew: T.empire.tabCrew, properties: T.empire.tabProps,
      districts: T.empire.tabDistricts, fight: T.empire.tabFight, arsenal: T.empire.tabArsenal,
-     friends: T.empire.tabFriends,
+     world: T.empire.tabWorld, friends: T.empire.tabFriends,
      inventory: T.empire.tabInventory, profile: T.empire.tabProfile })[T.empire.tab](body);
 };
 
@@ -1267,6 +1267,71 @@ T.empire.inviteFriend = function (friend) {
     onSent: function () { friend.invited = true; friend.invitedAt = now(); T.save(); T.empire.render(); }
   });
 };
+/* Online — World: shared leaderboard + async raids (see online.js). */
+T.empire.tabWorld = function (body) {
+  var s = T.state;
+  var esc = function (n) { return String(n == null ? "" : n).replace(/[<>&"]/g, function (c) { return { "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;" }[c]; }); };
+  body.appendChild(el("p", "muted", "The online world — a shared leaderboard and async raids. Your empire is posted to a global board, and you can raid other players' saved empires with your rating. Open this on the <strong>shared</strong> link in claude.ai (online play is off on a local file)."));
+  var box = el("div"); body.appendChild(box);
+  box.appendChild(el("p", "muted", "Connecting to the world…"));
+
+  T.online.init().then(function () {
+    box.innerHTML = "";
+    if (!window.claude || !window.claude.use) {
+      box.appendChild(el("div", "kpi", "🌐 Online play lights up when you open the <strong>shared</strong> game link in claude.ai — it's off on a local file."));
+      return;
+    }
+    if (!T.online.available()) {
+      box.appendChild(el("div", "kpi", "🌐 Couldn't reach the world (you may be signed out, or the page isn't shared yet). Single-player still works fully."));
+      return;
+    }
+    T.online.publishProfile();
+
+    var meKpi = el("div", "kpi");
+    meKpi.innerHTML = "📊 Your rating <strong>" + T.empire.playerPower() + "</strong> · Respect " + Math.round(s.player.respect) + " · on the board as ";
+    var nm = el("strong"); nm.textContent = s.player.name; meKpi.appendChild(nm);
+    box.appendChild(meKpi);
+    if (!T.online.writable()) box.appendChild(el("p", "muted small", "You can view the board but can't post or raid here — that needs Contributor access on the shared artifact (public-link viewers from outside the workspace are read-only)."));
+    var refresh = el("button", "btn btn--ghost", "Refresh board");
+    refresh.onclick = function () { T.empire.render(); };
+    box.appendChild(refresh);
+
+    box.appendChild(el("h3", null, "Leaderboard (top by Respect)"));
+    var list = el("div", "cards"); box.appendChild(list);
+    list.appendChild(el("p", "muted", "Loading…"));
+    T.online.loadLeaderboard().then(function (rows) {
+      list.innerHTML = "";
+      if (!rows.length) { list.appendChild(el("p", "muted", "No bosses on the board yet — you're the first. Share the link so friends can join.")); return; }
+      rows.forEach(function (r, i) {
+        var card = el("div", "card");
+        var h = el("h4"); h.textContent = (i + 1) + ". " + (r.name || "Boss"); card.appendChild(h);
+        var meta = el("div", "muted small"); meta.textContent = (r.rank || "Hustler") + " · Lv " + (r.level || 1) + " · " + (r.city || "") + " · " + (r.districts || 0) + " districts"; card.appendChild(meta);
+        var stat = el("div", "muted small"); stat.textContent = "Rating " + (r.power || 0) + " · Respect " + (r.respect || 0) + " · Defence " + (r.defense || 0); card.appendChild(stat);
+        if (r._id === T.online.uid) {
+          card.classList.add("card--hi");
+          card.appendChild(el("div", "small ok", "That's you"));
+        } else {
+          var outrank = T.empire.playerPower() > (r.power || 0);
+          card.appendChild(el("div", "small " + (outrank ? "ok" : "risk"), outrank ? "✅ You outrank them" : "⚠️ They outrank you"));
+          var raid = el("button", "btn", "Raid (3 stamina)");
+          raid.disabled = !T.online.writable() || s.resources.stamina < 3;
+          raid.onclick = function () {
+            if (s.resources.stamina < 3) { T.toast("Need 3 stamina", "warn"); return; }
+            s.resources.stamina -= 3; raid.disabled = true; raid.textContent = "Raiding…";
+            T.online.raid(r).then(function (res) {
+              if (!res.ok) { T.toast("Can't raid right now", "warn"); T.empire.render(); return; }
+              if (res.win) T.ui.screen("Raid won!", "You raided <strong>" + esc(res.name) + "</strong> and took " + T.money(res.loot) + " (+15 Respect).", "Nice", function () { T.empire.render(); });
+              else T.ui.screen("Raid failed", "<strong>" + esc(res.name) + "</strong> held you off — you lost some Respect and health.", "Damn", function () { T.empire.render(); });
+            });
+          };
+          card.appendChild(raid);
+        }
+        list.appendChild(card);
+      });
+    });
+  });
+};
+
 /* Recruit an added friend into the crew as a loyal lackey. */
 T.empire.recruitLackey = function (f) {
   var s = T.state;

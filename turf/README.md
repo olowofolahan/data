@@ -115,6 +115,22 @@ Everything a designer tunes lives in [`js/data.js`](js/data.js):
 | `js/ui.js` | overlays (country select, flyers, upkeep, events, choices) |
 | `js/main.js` | bootstrap + main loop |
 
+## Online (async multiplayer)
+
+When the game is opened on its **shared** claude.ai link, a **World** tab lights
+up using the artifact's shared database:
+- your empire is posted to a **global leaderboard** (rating, respect, rank,
+  districts);
+- you can **raid** other players' saved empires (resolved with the rating
+  system); the defender applies the consequence the next time they load, and
+  sees a "raids while you were away" summary.
+
+Writing (posting your score, raiding) needs **Contributor/Editor** access on the
+shared artifact (or same-workspace membership); people on a plain **public link**
+from outside the workspace can **view the board but not post or raid**. On a local
+file the World tab stays off and the rest of the game works normally. Code lives
+in `js/online.js` and uses the `db` + `user` runtime capabilities.
+
 ## Not yet (v2, per the design doc)
 
 Ad admin page + real tracking endpoint, cloud saves/accounts, more country

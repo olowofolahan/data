@@ -23,6 +23,7 @@ function enterGame(fresh) {
   if (fresh) { T.ui.tutorial(); }
   else { T.ui.welcomeBack(info); }
   startLoops();
+  if (T.online && T.online.onLoad) { try { T.online.onLoad(); } catch (e) {} }
 }
 
 function boot() {
