@@ -3,3 +3,4 @@ data/external/
 __pycache__/
 *.pyc
 .ipynb_checkpoints/
+data/processed/*.nc

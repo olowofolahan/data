@@ -13,3 +13,5 @@ spreg
 splot
 mapclassify
 matplotlib
+pymc
+arviz

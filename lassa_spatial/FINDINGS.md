@@ -132,3 +132,26 @@ python fit_models_full.py                # phase-3 incidence + positivity models
 ```
 Figures: `outputs/spatial_eda_maps.png`, `detection_scatter.png`,
 `incidence_drivers.png`.
+
+---
+
+# Phase 5 — Bayesian spatial regression (BYM)
+
+The spatial-econometric SAR/SEM models (Gaussian) found no residual
+dependence, so we fitted the disease-mapping standard: a Bayesian negative
+binomial **Besag–York–Mollié** model (log-pop offset; fixed effects = rainfall
+seasonality + log density; structured ICAR + unstructured random effects;
+HMC, 4 chains, max R-hat 1.01). Script: `fit_bym.py`.
+
+- Fixed effects retained directionally: rainfall seasonality IRR 0.45
+  [0.18, 1.06], P(IRR<1)=.97; density IRR 0.56 [0.28, 1.11], P(IRR<1)=.95.
+- **Spatial fraction φ = 0.22 [0.00, 0.85]** — ~22% of residual variance is
+  spatial, but the CrI spans 0 (not separable at n=37).
+- LOO does **not** favor the spatial model (ΔELPD −1.0, SE 0.8).
+- The smoothed residual spatial RR map (`bym_spatial_rr.png`) still localizes
+  the endemic belt (Edo 3.98, Bauchi 3.74, Ebonyi 2.96, Taraba 2.68, Ondo
+  2.50), lowest in the south-west.
+
+**Bottom line:** a formal spatial regression IS reportable (BYM), but at state
+resolution the covariate gradient explains most spatial structure and a
+decisive spatial signal needs LGA-level (n=774) data.

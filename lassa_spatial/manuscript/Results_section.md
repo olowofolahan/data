@@ -119,6 +119,37 @@ provided a substantially better fit than Model 1 (AIC = 297.2 vs. 395.2;
 McFadden *R²* = .30 vs. .05), consistent with detected cases being governed
 heavily by where and how intensively surveillance was conducted.
 
+## Bayesian spatial (BYM) model
+
+Because the spatial-econometric diagnostics above test only for residual
+*linear-Gaussian* dependence, we additionally fitted the disease-mapping
+standard: a Bayesian hierarchical negative binomial model with a
+log-population offset, the two separable fixed effects (rainfall seasonality
+and log population density), and two area random effects—a spatially
+structured intrinsic conditional autoregressive (ICAR) term on the queen
+adjacency graph and an unstructured independent term (Besag–York–Mollié
+specification). The model was estimated by Hamiltonian Monte Carlo (4 chains,
+1,500 post-warmup draws each; maximum $\hat{R}$ = 1.01).
+
+The fixed-effect gradients were retained, with high posterior probability of a
+protective direction: incidence decreased with rainfall seasonality (IRR =
+0.45, 95% credible interval [0.18, 1.06]; posterior *P*(IRR < 1) = .97) and
+with population density (IRR = 0.56, 95% CrI [0.28, 1.11]; *P*(IRR < 1) = .95).
+The structured random effect accounted for an estimated **22% of the residual
+area-level variance** (spatial fraction *φ* = 0.22, 95% CrI [0.00, 0.85]); the
+wide interval, spanning zero, indicates that the spatial and unstructured
+components cannot be reliably separated with only 37 areas. Consistent with
+this, leave-one-out cross-validation did not favor the spatial model over an
+otherwise identical non-spatial model (ΔELPD = −1.0, *SE* = 0.8). Nonetheless,
+the smoothed residual spatial relative-risk surface (Figure 4) localized a
+coherent central–eastern high-risk belt that persisted after adjustment for
+climate and density—Edo (RR = 3.98), Bauchi (3.74), Ebonyi (2.96), Taraba
+(2.68), Plateau (2.61), and Ondo (2.50)—with the lowest residual risk in the
+south-west (Osun, Ogun, Kwara). The spatial regression is therefore estimable
+and informative for hypothesis generation, but a definitive spatial signal is
+not identifiable at state resolution and would require local-government-area
+(n = 774) data.
+
 ## Model adequacy and residual spatial structure
 
 To confirm that the covariates captured the observed spatial clustering, an
@@ -239,3 +270,5 @@ Log-transformed confirmed versus suspected cases by state; states bordering
 the high–high cluster are highlighted. The near-linear relationship (OLS
 *R²* = .94) illustrates the dependence of detected burden on surveillance
 intensity.
+
+**Figure 4.** *Smoothed Residual Spatial Relative Risk From the Bayesian Besag–York–Mollié Model.* Posterior mean of the structured spatial random effect, exp(*u*), after adjustment for rainfall seasonality and population density. Values above 1 (red) indicate residual excess risk; a coherent central–eastern belt persists, with the lowest residual risk in the south-west. Spatial fraction *φ* = 0.22, 95% CrI [0.00, 0.85].
