@@ -8,6 +8,7 @@ STK=cv2.imread('edit/santa_sticker.png',cv2.IMREAD_UNCHANGED)  # BGRA
 OUT=sys.argv[1] if len(sys.argv)>1 else 'edit/video_noaudio.mp4'
 ONLY=(float(sys.argv[2]),float(sys.argv[3])) if len(sys.argv)>3 else None
 LOG=[]
+import os; NOMASK=os.environ.get('NOMASK')=='1'
 def head(track,t):
     d=TR[track]['data']; ts=np.array([k[0] for k in d]); t=float(np.clip(t,ts[0],ts[-1]))
     i=int(np.searchsorted(ts,t)); i=min(max(i,1),len(d)-1); a,b=d[i-1],d[i]
@@ -69,7 +70,7 @@ def shot_frame(i,ot):
     g=grade(img,warm)
     fr=cv2.warpAffine(g,M,(W,H),flags=cv2.INTER_LANCZOS4,borderMode=cv2.BORDER_REFLECT)
     bl=cv2.GaussianBlur(fr,(0,0),1.3); fr=cv2.addWeighted(fr,1.35,bl,-0.35,0)
-    if trk:
+    if trk and not NOMASK:
         tt=0 if src.startswith('P') else tin+(ot-st)
         hx,hy,hr=head(trk,tt); sx=W/w
         X=(hx-x0)*sx; Y=(hy-y0)*sx; rc=max(hr*1.5*sx, 46)
