@@ -1,0 +1,15 @@
+pandas
+openpyxl
+geopandas
+rasterio
+rasterstats
+shapely
+pyproj
+scipy
+statsmodels
+libpysal
+esda
+spreg
+splot
+mapclassify
+matplotlib

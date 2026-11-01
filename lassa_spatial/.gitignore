@@ -1,0 +1,6 @@
+# Large external downloads (fetch-on-demand; see VARIABLES.md)
+data/external/*.zip
+data/external/ne_admin1/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
