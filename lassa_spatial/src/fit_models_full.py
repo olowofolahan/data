@@ -45,16 +45,18 @@ def main() -> None:
     mi = Moran(g["log_inc"].values, w, permutations=9999)
     print(f"Moran's I log-incidence = {mi.I:.3f} (p={mi.p_sim:.4f})")
 
-    # (1) Negative binomial incidence model (offset = log population)
+    # (1) Negative binomial incidence model, dispersion (alpha) ESTIMATED
+    # (NB2 via exposure=population). Estimating alpha gives honest SEs/CIs.
     X = sm.add_constant(g[zp].astype(float))
-    nb = sm.GLM(g["confirmed"], X, offset=g["log_pop"].values,
-                family=sm.families.NegativeBinomial(alpha=1.0)).fit()
+    nb = sm.NegativeBinomial(g["confirmed"], X,
+                             exposure=g["population"].values).fit(disp=0, maxiter=200)
+    ci = nb.conf_int()
     irr = pd.DataFrame({
         "IRR": np.exp(nb.params), "p": nb.pvalues,
-        "ci_lo": np.exp(nb.conf_int()[0]), "ci_hi": np.exp(nb.conf_int()[1])
-    }).round(3)
-    print("\n=== (1) NB incidence (IRR per 1 SD; offset=log pop) ===")
-    print(f"deviance/df = {nb.deviance/nb.df_resid:.2f}")
+        "ci_lo": np.exp(ci[0]), "ci_hi": np.exp(ci[1])}).round(3)
+    print("\n=== (1) NB2 incidence (IRR per 1 SD; exposure=pop) ===")
+    print(f"alpha = {nb.params.get('alpha', float('nan')):.3f}   "
+          f"McFadden R2 = {1 - nb.llf/nb.llnull:.3f}   AIC = {nb.aic:.1f}")
     print(irr.to_string())
 
     # OLS on log-incidence + spatial diagnostics
@@ -71,12 +73,13 @@ def main() -> None:
     eco = ["mpi", "log_popdens", "gbif_mnatalensis_n", "centroid_lat"]
     zeco = [f"z_{c}" for c in eco]
     Xe = sm.add_constant(g[zeco].astype(float))
-    nbe = sm.GLM(g["confirmed"], Xe, offset=g["log_pop"].values,
-                 family=sm.families.NegativeBinomial(alpha=1.0)).fit()
+    nbe = sm.NegativeBinomial(g["confirmed"], Xe,
+                              exposure=g["population"].values).fit(disp=0, maxiter=200)
+    cie = nbe.conf_int()
     irre = pd.DataFrame({"IRR": np.exp(nbe.params), "p": nbe.pvalues,
-                         "ci_lo": np.exp(nbe.conf_int()[0]),
-                         "ci_hi": np.exp(nbe.conf_int()[1])}).round(3)
-    print("\n=== (1b) NB incidence, ECOLOGICAL/SES only (no surveillance) ===")
+                         "ci_lo": np.exp(cie[0]), "ci_hi": np.exp(cie[1])}).round(3)
+    print("\n=== (1b) NB2 incidence, ECOLOGICAL/SES only (no surveillance) ===")
+    print(f"alpha = {nbe.params.get('alpha', float('nan')):.3f}")
     print(irre.to_string())
 
     # (2) Test-positivity (detection-robust) via OLS on logit-ish fraction

@@ -64,14 +64,18 @@ socioeconomic covariate is significant**. But `log(suspected)` is a
 including it over-adjusts.
 
 ### Ecological/SES model (no surveillance proxy) — real gradients emerge
-NB incidence, IRR per 1 SD (offset = log population):
+NB incidence with **estimated dispersion** (α = 2.70), IRR per 1 SD
+(exposure = population):
 
 | Predictor | IRR | 95% CI | p | Reading |
 |---|---|---|---|---|
-| **Centroid latitude** | **0.09** | 0.04–0.18 | <0.001 | incidence falls steeply going north — the southern/central Lassa belt |
-| **Population density** | **0.30** | 0.20–0.44 | <0.001 | denser (urban) states have lower per-capita incidence — Lassa is rural/peridomestic |
-| **Poverty (MPI)** | **2.53** | 1.17–5.46 | 0.018 | after adjusting for the N–S gradient, higher poverty → higher incidence |
-| GBIF *Mastomys* occ. | 1.03 | 0.74–1.45 | 0.86 | ns — occurrence counts too sampling-biased (Ondo, #1 hotspot, has 0 records) |
+| **Centroid latitude** | **0.09** | 0.02–0.43 | 0.003 | incidence falls steeply going north — the southern/central Lassa belt |
+| **Population density** | **0.30** | 0.12–0.78 | 0.014 | denser (urban) states have lower per-capita incidence — Lassa is rural/peridomestic |
+| Poverty (MPI) | 2.51 | 0.68–9.18 | 0.166 | positive but **not significant** once the N–S gradient is controlled |
+| GBIF *Mastomys* occ. | 1.03 | 0.61–1.76 | 0.91 | ns — occurrence counts too sampling-biased (Ondo, #1 hotspot, has 0 records) |
+
+(With dispersion fixed at α = 1 the poverty term reaches p = 0.018, but that
+understates the SE; the estimated-dispersion fit above is the honest result.)
 
 Residual spatial autocorrelation is absent after covariates (resid Moran's
 I ≈ 0, LM-lag/error ns), so these covariates absorb the spatial structure;
