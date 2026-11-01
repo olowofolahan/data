@@ -6,3 +6,4 @@ edit/*.json
 edit/*.onnx
 deliver/*.mp4
 !edit/tracks.json
+__pycache__/
