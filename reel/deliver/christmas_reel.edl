@@ -1,0 +1,122 @@
+TITLE: CHRISTMAS_REEL_90S
+FCM: NON-DROP FRAME
+
+001  V21      V     C        00:01:16:00 00:01:18:15 00:00:00:00 00:00:02:15
+* FROM CLIP NAME: VID-20261031-WA0021.mp4
+* COMMENT: HOOK lit tree
+
+002  P2       V     C        00:00:00:00 00:00:02:15 00:00:02:15 00:00:05:00
+* FROM CLIP NAME: photo 2 (e82db1d8-image.jpg)
+* COMMENT: toddler waving (photo) | MASK CHILD FACE (static)
+
+003  P6       V     C        00:00:00:00 00:00:02:15 00:00:05:00 00:00:07:15
+* FROM CLIP NAME: photo 6 (0a7759c3-image.jpg)
+* COMMENT: dad & son set up the room (photo) | MASK CHILD FACE (static)
+
+004  P4       V     C        00:00:00:00 00:00:02:15 00:00:07:15 00:00:10:00
+* FROM CLIP NAME: photo 4 (688b1bb2-image.jpg)
+* COMMENT: teamwork at the TV (photo) | MASK CHILD FACE (static)
+
+005  P5       V     C        00:00:00:00 00:00:02:15 00:00:10:00 00:00:12:15
+* FROM CLIP NAME: photo 5 (64167bee-image.jpg)
+* COMMENT: tree in the box (photo)
+
+006  V20      V     C        00:00:01:27 00:00:04:27 00:00:12:15 00:00:15:15
+* FROM CLIP NAME: VID-20261031-WA0020.mp4
+* COMMENT: opening the box | MASK CHILD FACE (auto-tracked toddler)
+
+007  V20      V     C        00:00:13:00 00:00:15:15 00:00:15:15 00:00:18:00
+* FROM CLIP NAME: VID-20261031-WA0020.mp4
+* COMMENT: lifting the first section | MASK CHILD FACE (auto-tracked toddler)
+
+008  V20      V     C        00:00:21:00 00:00:23:15 00:00:18:00 00:00:20:15
+* FROM CLIP NAME: VID-20261031-WA0020.mp4
+* COMMENT: fitting the stand
+
+009  V20      V     C        00:00:25:09 00:00:27:24 00:00:20:15 00:00:23:00
+* FROM CLIP NAME: VID-20261031-WA0020.mp4
+* COMMENT: tree standing
+
+010  V17      V     C        00:00:01:00 00:00:03:15 00:00:23:00 00:00:25:15
+* FROM CLIP NAME: VID-20261031-WA0017.mp4
+* COMMENT: spreading lower branches
+
+011  V17      V     C        00:00:06:00 00:00:08:15 00:00:25:15 00:00:28:00
+* FROM CLIP NAME: VID-20261031-WA0017.mp4
+* COMMENT: spreading branches 2
+
+012  V19      V     C        00:00:00:00 00:00:02:00 00:00:28:00 00:00:30:00
+* FROM CLIP NAME: VID-20261031-WA0019.mp4
+* COMMENT: fluffing middle
+
+013  V19      V     C        00:00:15:15 00:00:18:00 00:00:30:00 00:00:32:15
+* FROM CLIP NAME: VID-20261031-WA0019.mp4
+* COMMENT: fluffing close
+
+014  V19      V     C        00:00:19:00 00:00:21:15 00:00:32:15 00:00:35:00
+* FROM CLIP NAME: VID-20261031-WA0019.mp4
+* COMMENT: hands in branches
+
+015  V21      V     C        00:00:13:24 00:00:16:09 00:00:35:00 00:00:37:15
+* FROM CLIP NAME: VID-20261031-WA0021.mp4
+* COMMENT: shaping the top
+
+016  V21      V     C        00:00:05:24 00:00:09:06 00:00:37:15 00:00:40:27
+* FROM CLIP NAME: VID-20261031-WA0021.mp4
+* COMMENT: toddler dance | MASK CHILD FACE (hand-keyed toddler (0.2s keys))
+
+017  V21      V     C        00:00:16:15 00:00:18:26 00:00:40:27 00:00:43:08
+* FROM CLIP NAME: VID-20261031-WA0021.mp4
+* COMMENT: top branches
+
+018  V21      V     C        00:00:21:15 00:00:25:00 00:00:43:08 00:00:46:22
+* FROM CLIP NAME: VID-20261031-WA0021.mp4
+* COMMENT: mum + baby join | MASK CHILD FACE (hand-keyed baby (0.5s keys))
+
+019  V21      V     C        00:00:27:15 00:00:29:22 00:00:46:22 00:00:49:00
+* FROM CLIP NAME: VID-20261031-WA0021.mp4
+* COMMENT: mum laughs to camera | MASK CHILD FACE (hand-keyed baby (0.25s keys))
+
+020  V21      V     C        00:00:40:08 00:00:42:22 00:00:49:00 00:00:51:15
+* FROM CLIP NAME: VID-20261031-WA0021.mp4
+* COMMENT: mum reaches the top | MASK CHILD FACE (hand-keyed baby (0.25s keys))
+
+021  V19      V     C        00:00:22:15 00:00:25:00 00:00:51:15 00:00:54:00
+* FROM CLIP NAME: VID-20261031-WA0019.mp4
+* COMMENT: dad final fluff, glance
+
+022  V21      V     C        00:00:01:00 00:00:03:15 00:00:54:00 00:00:56:15
+* FROM CLIP NAME: VID-20261031-WA0021.mp4
+* COMMENT: dad tweaks the top
+
+023  V21      V     C        00:00:48:24 00:00:52:24 00:00:56:15 00:01:00:15
+* FROM CLIP NAME: VID-20261031-WA0021.mp4
+* COMMENT: toddler heads to the tree | MASK CHILD FACE (auto-tracked toddler)
+
+024  V21      V     C        00:00:45:24 00:00:47:09 00:01:00:15 00:01:02:00
+* FROM CLIP NAME: VID-20261031-WA0021.mp4
+* COMMENT: tree fully shaped, unlit (cutaway)
+
+025  V21      V     C        00:00:52:09 00:01:02:24 00:01:02:00 00:01:12:15
+* FROM CLIP NAME: VID-20261031-WA0021.mp4
+* COMMENT: toddler plugs in -> LIGHTS ON @70.0 | MASK CHILD FACE (auto-tracked toddler)
+
+026  V21      V     C        00:01:04:28 00:01:07:14 00:01:12:15 00:01:15:00
+* FROM CLIP NAME: VID-20261031-WA0021.mp4
+* COMMENT: toddler runs to camera | MASK CHILD FACE (hand-keyed toddler, growing size)
+
+027  V21      V     C        00:01:11:18 00:01:14:10 00:01:15:00 00:01:17:22
+* FROM CLIP NAME: VID-20261031-WA0021.mp4
+* COMMENT: room lights off, silhouette | MASK CHILD FACE (hand-keyed toddler silhouette)
+
+028  P8       V     C        00:00:00:00 00:00:02:15 00:01:17:22 00:01:20:08
+* FROM CLIP NAME: photo 8 (c386cf61-image.jpg)
+* COMMENT: touching the lights (photo) | MASK CHILD FACE (static)
+
+029  P1       V     C        00:00:00:00 00:00:02:15 00:01:20:08 00:01:22:22
+* FROM CLIP NAME: photo 1 (800a2547-image.jpg)
+* COMMENT: toddler by the lit tree (photo) | MASK CHILD FACE (static)
+
+030  V21      V     C        00:01:18:08 00:01:25:15 00:01:22:22 00:01:30:00
+* FROM CLIP NAME: VID-20261031-WA0021.mp4
+* COMMENT: CLOSING glow
