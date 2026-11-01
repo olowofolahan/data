@@ -45,10 +45,61 @@ that we need to:
 3. Re-test residual spatial autocorrelation and, if present, use spatial
    lag/error or a Bayesian BYM (CAR) model.
 
+---
+
+# Phase 3 — full covariate models (incidence + poverty + reservoir + geography)
+
+Covariates now collected (network unblocked): **population/density** (WorldPop
+v2.0), **poverty** (OPHI subnational MPI, MICS 2021), **health-facility
+density** (HDX registry, 46k facilities), **reservoir occurrences** (GBIF
+*Mastomys* etc.), plus geography and surveillance proxies. Outcome switched to
+**incidence** (confirmed / population, NB with log-pop offset) and
+**test-positivity** (confirmed / suspected).
+
+### The detection confound persists on raw incidence
+In a model that includes the surveillance proxy `log(suspected)`, that term
+alone dominates (IRR ≈ 8.6 per SD, p<0.001) and **no ecological or
+socioeconomic covariate is significant**. But `log(suspected)` is a
+*mediator/collider* of disease (more true cases → more suspected cases), so
+including it over-adjusts.
+
+### Ecological/SES model (no surveillance proxy) — real gradients emerge
+NB incidence, IRR per 1 SD (offset = log population):
+
+| Predictor | IRR | 95% CI | p | Reading |
+|---|---|---|---|---|
+| **Centroid latitude** | **0.09** | 0.04–0.18 | <0.001 | incidence falls steeply going north — the southern/central Lassa belt |
+| **Population density** | **0.30** | 0.20–0.44 | <0.001 | denser (urban) states have lower per-capita incidence — Lassa is rural/peridomestic |
+| **Poverty (MPI)** | **2.53** | 1.17–5.46 | 0.018 | after adjusting for the N–S gradient, higher poverty → higher incidence |
+| GBIF *Mastomys* occ. | 1.03 | 0.74–1.45 | 0.86 | ns — occurrence counts too sampling-biased (Ondo, #1 hotspot, has 0 records) |
+
+Residual spatial autocorrelation is absent after covariates (resid Moran's
+I ≈ 0, LM-lag/error ns), so these covariates absorb the spatial structure;
+a non-spatial NB is adequate at this scale.
+
+### Honest caveats
+- State scale (n=37) entangles **true risk** with **detection geography**
+  (southern/central states also host the diagnostic labs). The truth lies
+  between the two models above; clean separation needs LGA-level data or a
+  direct testing-capacity measure.
+- The raw non-monotonic poverty pattern (hotspots Ondo/Edo are low-poverty)
+  was **latitude confounding** — poverty's effect is positive once geography
+  is controlled.
+- Still missing: **climate** (rainfall/temperature; WorldClim & CHIRPS hosts
+  remain blocked) and a proper **reservoir suitability surface** (GBIF counts
+  are not a substitute). Latitude is currently proxying the climate/vegetation
+  gradient.
+
 ## Reproduce
 ```bash
 cd src
-python build_covariates_available.py   # -> data/processed/covariates_available.csv
-python fit_models.py                    # -> model comparison + data/processed/model_frame.csv
+python build_covariates_available.py   # geography/surveillance/lab covariates
+python fetch_gbif_rodents.py            # GBIF reservoir occurrences
+python build_population.py              # WorldPop population + density
+python build_socioeconomic.py           # OPHI MPI + HDX health facilities
+python assemble_master.py               # -> data/processed/master_state.csv
+python fit_models.py                     # phase-2 detection models
+python fit_models_full.py                # phase-3 incidence + positivity models
 ```
-Outputs: `outputs/spatial_eda_maps.png`, `outputs/detection_scatter.png`.
+Figures: `outputs/spatial_eda_maps.png`, `detection_scatter.png`,
+`incidence_drivers.png`.

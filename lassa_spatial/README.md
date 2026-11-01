@@ -5,18 +5,25 @@ Nigeria's 37 first-level units (36 states + FCT), using NCDC weekly
 surveillance as the outcome and state-level socio-ecological covariates as
 predictors.
 
-## Status (phase 1 complete)
+## Status
 
-| Step | Script | Output | Result |
-|------|--------|--------|--------|
-| Outcome table | `src/build_outcome.py` | `data/processed/outcome_state.csv` | 37 states, cumulative + per-year cases |
-| Boundaries + weights | `src/build_boundaries.py` | `data/processed/states.geojson`, `queen_weights.gal` | 37 polygons, queen contiguity (4.7 nbrs avg, 0 islands) |
-| Spatial autocorrelation | `src/spatial_eda.py` | `outputs/spatial_eda_maps.png`, `lisa_results.csv` | **Moran's I = 0.25, p = 0.007** |
+| Phase | Scripts | Result |
+|------|--------|--------|
+| 1 — outcome + spatial structure | `build_outcome`, `build_boundaries`, `spatial_eda` | 37-state outcome; **Moran's I = 0.25, p = 0.007** (clustered) |
+| 2 — detection baseline | `build_covariates_available`, `fit_models` | confirmed ∝ suspected (R²=0.94); clustering is largely a detection signal |
+| 3 — full covariate models | `fetch_gbif_rodents`, `build_population`, `build_socioeconomic`, `assemble_master`, `fit_models_full` | incidence driven by **latitude ↓, density ↓, poverty ↑**; see `FINDINGS.md` |
 
-**Headline so far:** confirmed cases are significantly spatially clustered
-(not random), with a High–High hotspot belt (Edo, Taraba, Benue, Plateau,
-Nasarawa, Delta). This justifies a spatial model over OLS. Five states
-(Ondo, Edo, Bauchi, Taraba, Ebonyi) hold 86% of all confirmed cases.
+**Headline:** confirmed cases cluster in a southern/central belt (Edo, Ondo,
+Bauchi, Taraba, Ebonyi = 86% of cases). On incidence, the ecological model
+shows strong **north–south and urban–rural gradients** plus a **positive
+poverty effect** once geography is controlled — but detection geography and
+true risk are entangled at state scale. Full detail and caveats in
+[`FINDINGS.md`](FINDINGS.md).
+
+Collected covariates: WorldPop population/density, OPHI subnational MPI
+(poverty), HDX health-facility density, GBIF reservoir occurrences, geography,
+surveillance proxies. **Pending:** climate (WorldClim/CHIRPS hosts still
+blocked) and a proper *Mastomys* suitability surface.
 
 ## Outcome definition
 
@@ -35,26 +42,28 @@ performed, `pct_confirmed_of_suspected`) must be a covariate.
 See [`VARIABLES.md`](VARIABLES.md) for the full mechanism-based catalogue and
 the data-source / acquisition status for each.
 
-## Network constraint (action needed)
-
-This cloud session's egress policy currently reaches only GitHub and Natural
-Earth. The covariate hosts (WorldPop, CHIRPS/WorldClim, NBS, DHS, HDX, GBIF,
-Wikipedia) are blocked, so automated covariate collection is paused. To
-continue, add these under **Allowed domains** in the environment's Network
-settings (keep "Allow package managers" ticked):
-`data.humdata.org`, `api.gbif.org`, `en.wikipedia.org`, `data.worldpop.org`,
-`dhsprogram.com`. Steps: https://code.claude.com/docs/en/cloud-environments#network-access
-
 ## Reproduce
 
 ```bash
 pip install -r requirements.txt
-# one-time: fetch Natural Earth admin-1 into data/external/ (see VARIABLES.md)
+bash src/download_external.sh   # Natural Earth, WorldPop, HDX MPI + health
 cd src
 python build_outcome.py
 python build_boundaries.py
 python spatial_eda.py
+python build_covariates_available.py
+python fetch_gbif_rodents.py          # pulls GBIF directly
+python build_population.py
+python build_socioeconomic.py
+python assemble_master.py
+python fit_models.py
+python fit_models_full.py
 ```
+
+To add the pending climate covariates, allowlist `geodata.ucdavis.edu`
+(WorldClim) and `data.chc.ucsb.edu` (CHIRPS) under **Allowed domains** in the
+environment's Network settings:
+https://code.claude.com/docs/en/cloud-environments#network-access
 
 ## Data provenance
 
