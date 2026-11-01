@@ -20,4 +20,9 @@ curl -sSL -o hdx/nga_mpi.csv \
   "https://data.humdata.org/dataset/042c1bf4-2942-475f-8cb2-1fb783f8da91/resource/601f51cd-c46a-4ab2-ba0f-8bef62329ddc/download/nga_mpi.csv"
 curl -sSL -o hdx/nga_health.csv \
   "https://data.humdata.org/dataset/3b4a119a-309c-4d3f-900f-18a1f6ca2dfa/resource/4658aa59-0554-4fac-8473-377da4b7a0e9/download/nigeriahealthfacilities.csv"
+# WorldClim 2.1 bioclimatic variables (5 arc-minute)
+curl -sSL -o worldclim_5m_bio.zip \
+  "https://geodata.ucdavis.edu/climate/worldclim/2_1/base/wc2.1_5m_bio.zip"
+unzip -o -q worldclim_5m_bio.zip -d worldclim
+
 echo "external data downloaded."

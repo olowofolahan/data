@@ -57,6 +57,34 @@ occurrences (the primary reservoir) was uncorrelated with incidence
 abundance (the highest-incidence state, Ondo, had zero records), this variable
 was retained only as a sensitivity covariate.
 
+## Climate covariates and the dimensionality of the risk gradient
+
+State-level climate normals (WorldClim 2.1, 5-arc-minute zonal means) mirrored
+the latitudinal gradient closely: annual rainfall ranged from 488 mm in the
+arid northeast (Yobe) to 3,115 mm on the southern coast (Bayelsa), and the
+southern high-incidence states (Ondo, Edo, Ebonyi) received 1,659–1,880 mm.
+Climate was, however, almost perfectly collinear with the other gradient
+predictors. Centroid latitude was correlated *r* = −.92 with annual rainfall,
+*r* = .95 with rainfall seasonality, *r* = .97 with temperature seasonality,
+and *r* = .89 with multidimensional poverty. Variance inflation factors in a
+combined model were accordingly extreme (temperature seasonality = 56.0,
+rainfall seasonality = 41.4, latitude = 34.8, annual rainfall = 9.3, poverty =
+7.0), whereas population density was effectively orthogonal (VIF = 1.3). A
+principal-components analysis of the five gradient variables confirmed their
+redundancy: the first component alone accounted for 91.3% of their variance.
+Latitude, climate, and poverty therefore represent a single latent north–south
+axis and cannot be identified separately at this spatial scale.
+
+A low-collinearity model retaining one mechanistic gradient proxy (rainfall
+seasonality) together with the orthogonal density term reproduced the pattern
+cleanly and stably: incidence fell with rainfall seasonality, IRR = 0.31, 95%
+CI [0.17, 0.57], *p* < .001, and with population density, IRR = 0.23, 95% CI
+[0.11, 0.49], *p* < .001, while reservoir occurrence remained null, IRR = 1.02,
+95% CI [0.56, 1.85], *p* = .944 (Table 3). The instability of the poverty
+coefficient across specifications (positive when conditioned on rainfall,
+negative when conditioned on dry-season moisture) further indicates that it
+carries no risk signal independent of the gradient.
+
 ## Negative binomial regression of incidence
 
 Given the overdispersed count outcome, state incidence was modelled with
@@ -131,6 +159,10 @@ Predictors (N = 37 States)*
 | Health facilities (per 100,000) | 24.70 | 11.83 | 22.80 | 8.90 | 72.90 |
 | *M. natalensis* occurrences (GBIF) | 3.73 | 6.45 | 0.00 | 0 | 24 |
 | Centroid latitude (°N) | 8.47 | 2.52 | 8.03 | 4.77 | 13.03 |
+| Annual mean temperature (°C) | 26.50 | 0.72 | 26.40 | 24.70 | 28.20 |
+| Annual precipitation (mm) | 1,434.10 | 656.60 | 1,326.70 | 488.40 | 3,114.80 |
+| Precipitation seasonality (CV) | 92.50 | 27.30 | 82.60 | 63.10 | 148.30 |
+| Temperature seasonality (SD ×100) | 173.70 | 72.30 | 151.50 | 88.80 | 320.90 |
 
 *Note.* Burden figures are cumulative over epidemiological week 6 of 2020 to
 week 34 of 2026 (Nigeria Centre for Disease Control weekly situation reports).
@@ -138,7 +170,8 @@ Population and density from WorldPop bottom-up estimates (v2.0); poverty from
 the Oxford Poverty and Human Development Initiative subnational
 Multidimensional Poverty Index (MICS 2021); health facilities from the
 Humanitarian Data Exchange national registry; reservoir occurrences from the
-Global Biodiversity Information Facility. The case-fatality rate row
+Global Biodiversity Information Facility; climate from WorldClim 2.1
+(1970–2000 normals, 5-arc-minute zonal means). The case-fatality rate row
 summarises state-level ratios; the population-weighted national rate was
 16.10%.
 
@@ -166,6 +199,25 @@ predictor; models use population as the exposure. Model 2 adds
 surveillance/detection covariates. Em dashes indicate predictors not entered
 in Model 1.
 \**p* < .05. \***p* < .01. \****p* < .001.
+
+---
+
+## Table 3
+
+*Parsimonious Low-Collinearity Negative Binomial Model of State Lassa Fever
+Incidence (N = 37)*
+
+| Predictor (per 1 *SD*) | IRR | 95% CI | *p* |
+|---|---:|---|---:|
+| Precipitation seasonality (CV) | 0.31 | [0.17, 0.57] | < .001 |
+| Population density (log) | 0.23 | [0.11, 0.49] | < .001 |
+| *M. natalensis* occurrences | 1.02 | [0.56, 1.85] | .944 |
+
+*Note.* IRR = incidence-rate ratio per one standard-deviation increase;
+exposure = population; dispersion estimated (*α* = 2.82). Rainfall seasonality
+is retained as a single, mechanistic proxy for the collinear north–south
+gradient (latitude, rainfall, temperature seasonality, and poverty; PCA first
+component = 91.3% of variance). All variance inflation factors < 1.4.
 
 ---
 

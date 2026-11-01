@@ -13,9 +13,11 @@ def main() -> None:
     pop = pd.read_csv(PROCESSED / "population_state.csv")
     ses = pd.read_csv(PROCESSED / "socioeconomic_state.csv")
     gbif = pd.read_csv(PROCESSED / "gbif_rodents_state.csv")
+    clim = pd.read_csv(PROCESSED / "climate_state.csv")
 
     m = (g.merge(out, on="State").merge(cov, on="State")
-         .merge(pop, on="State").merge(ses, on="State").merge(gbif, on="State"))
+         .merge(pop, on="State").merge(ses, on="State").merge(gbif, on="State")
+         .merge(clim, on="State"))
 
     # Epidemiological outcomes
     m["incidence_per100k"] = (1e5 * m["confirmed"] / m["population"]).round(3)

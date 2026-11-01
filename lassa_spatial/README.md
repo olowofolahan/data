@@ -15,15 +15,16 @@ predictors.
 
 **Headline:** confirmed cases cluster in a southern/central belt (Edo, Ondo,
 Bauchi, Taraba, Ebonyi = 86% of cases). On incidence, the ecological model
-shows strong **north–south and urban–rural gradients** plus a **positive
-poverty effect** once geography is controlled — but detection geography and
-true risk are entangled at state scale. Full detail and caveats in
+shows strong **north–south climate and urban–rural gradients**; latitude,
+rainfall, and poverty collapse onto one latent axis (PCA PC1 = 91%), so only
+the gradient and **population density** are separable. Detection geography and
+true risk remain entangled at state scale. Full detail and caveats in
 [`FINDINGS.md`](FINDINGS.md).
 
 Collected covariates: WorldPop population/density, OPHI subnational MPI
 (poverty), HDX health-facility density, GBIF reservoir occurrences, geography,
-surveillance proxies. **Pending:** climate (WorldClim/CHIRPS hosts still
-blocked) and a proper *Mastomys* suitability surface.
+surveillance proxies. Climate (WorldClim 2.1) added in phase 4. **Pending:** a proper
+*Mastomys* reservoir suitability surface.
 
 ## Outcome definition
 

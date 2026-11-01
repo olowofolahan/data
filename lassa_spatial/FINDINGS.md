@@ -89,10 +89,35 @@ a non-spatial NB is adequate at this scale.
 - The raw non-monotonic poverty pattern (hotspots Ondo/Edo are low-poverty)
   was **latitude confounding** — poverty's effect is positive once geography
   is controlled.
-- Still missing: **climate** (rainfall/temperature; WorldClim & CHIRPS hosts
-  remain blocked) and a proper **reservoir suitability surface** (GBIF counts
-  are not a substitute). Latitude is currently proxying the climate/vegetation
-  gradient.
+- Still missing: a proper **reservoir suitability surface** (GBIF counts are
+  not a substitute).
+
+---
+
+# Phase 4 — climate covariates (WorldClim)
+
+Added WorldClim 2.1 (5-arc-min) state zonal means: annual temp, annual
+rainfall, dry-month rainfall, rainfall seasonality, temperature seasonality.
+Rainfall drops from ~3,115 mm (Bayelsa, south) to ~488 mm (Yobe, north).
+
+**Result: climate does not add independent signal — it *is* the gradient.**
+Climate is almost perfectly collinear with latitude and poverty
+(latitude–rainfall *r* = −.92, latitude–rainfall-seasonality *r* = .95,
+latitude–temp-seasonality *r* = .97, latitude–MPI *r* = .89). VIFs are extreme
+(temp seasonality 56, rainfall seasonality 41, latitude 35); only population
+density is orthogonal (VIF 1.3). A PCA of {latitude, rainfall, rainfall
+seasonality, temp seasonality, MPI} gives **PC1 = 91.3%** of variance — one
+latent north–south axis.
+
+A clean low-VIF model keeps one mechanistic gradient proxy + density:
+- Rainfall seasonality: IRR 0.31 [0.17, 0.57], p < .001 (less seasonal, wetter
+  south → higher incidence)
+- Population density: IRR 0.23 [0.11, 0.49], p < .001
+- GBIF *Mastomys*: ns
+
+The poverty coefficient flips sign across specifications → no risk signal
+independent of the gradient. Scripts: `build_climate.py`,
+`climate_analysis.py`.
 
 ## Reproduce
 ```bash

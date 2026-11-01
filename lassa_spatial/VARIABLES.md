@@ -22,9 +22,9 @@ from the boundary file (already available).
 ## B. Climate (drives rodent cycles & dry-season peak)
 | Variable | Mechanism | Source | Acquisition | Reachable now? |
 |---|---|---|---|---|
-| Annual & seasonal rainfall | Rodent breeding; Dec–Mar peak | CHIRPS / WorldClim bio12 | raster→zonal | ✗ (data.chc.ucsb.edu blocked) |
-| Rainfall seasonality | Timing of outbreaks | CHIRPS / WorldClim bio15 | raster→zonal | ✗ |
-| Mean / min temperature | Rodent survival | WorldClim bio1/bio6 | raster→zonal | ✗ (ucdavis blocked) |
+| Annual & seasonal rainfall | Rodent breeding; Dec–Mar peak | WorldClim bio12/bio14 | raster→zonal | ✓ collected |
+| Rainfall seasonality | Timing of outbreaks | WorldClim bio15 | raster→zonal | ✓ collected |
+| Mean / min temperature | Rodent survival | WorldClim bio1/bio4 | raster→zonal | ✓ collected |
 | Relative humidity, aridity index | Virus persistence, habitat | TerraClimate | raster→zonal | ✗ |
 
 ## C. Socioeconomic
