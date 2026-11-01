@@ -42,18 +42,20 @@ choropleth of confirmed cases and the LISA cluster map are shown in Figure 1.
 
 ## Bivariate associations
 
-At the bivariate level, state incidence declined markedly with latitude
-(*r* = −.49): the highest-incidence states lay in the southern and central
-forest–savanna mosaic, and incidence fell steeply toward the arid north.
-Incidence was also lower in more densely populated states. Multidimensional
-poverty was strongly collinear with latitude (*r* = .89), reflecting
-Nigeria's north–south socioeconomic gradient, and was negatively correlated
-with health-facility density (*r* = −.50). These bivariate relationships are
-displayed in Figure 2. The number of georeferenced *Mastomys natalensis*
-occurrences (the primary reservoir) was essentially uncorrelated with
-incidence (*r* = −.06); because occurrence records reflect trapping effort
-rather than abundance (the highest-incidence state, Ondo, had zero records),
-this variable was retained only as a sensitivity covariate.
+At the bivariate level, state incidence (log scale) was weakly and negatively
+correlated with latitude (*r* = −.20), population density (*r* = −.21), and
+multidimensional poverty (*r* = −.09). These simple associations were
+attenuated by the strongly right-skewed outcome, which was dominated by two
+low-latitude southern outliers (Ondo and Edo). The predictors were themselves
+intercorrelated—most strongly latitude with poverty (*r* = .89), reflecting
+Nigeria's north–south socioeconomic gradient, and latitude with
+health-facility density (*r* = −.57)—so their independent contributions are
+better assessed in the multivariable models below. These bivariate patterns
+are displayed in Figure 2. The number of georeferenced *Mastomys natalensis*
+occurrences (the primary reservoir) was uncorrelated with incidence
+(*r* = −.06); because occurrence records reflect trapping effort rather than
+abundance (the highest-incidence state, Ondo, had zero records), this variable
+was retained only as a sensitivity covariate.
 
 ## Negative binomial regression of incidence
 
