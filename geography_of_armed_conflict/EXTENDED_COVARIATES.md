@@ -35,18 +35,22 @@ Outcome = log(political-violence deaths per 100k, 2020–25). Standardised OLS, 
 | Terrain ruggedness | +0.18 | 0.281 |
 | Political unrest | −0.20 | 0.228 |
 
-**Multivariate model:** R² = 0.25, **LOOCV R² = −0.14** (no out-of-sample skill). Only
-**population density is significant** (β = −0.65, p = 0.03): conflict intensity is higher in
-**sparsely-populated, rural** states — the classic periphery/"ungoverned space" pattern. Terrain
-ruggedness, religion, oil, economic resources and poverty are **not** significant once density is
-accounted for (and some are collinear with the North–South divide — MPI VIF 5.3, Muslim 4.1).
+**Multivariate model:** R² = 0.25, **LOOCV R² = −0.14** (no out-of-sample skill). Population density
+is the strongest predictor, but **its significance is specification-dependent and fragile**: p = .03
+in this six-predictor model, but p = .06–.10 in the parsimonious and standardised models (its 95% CI
+includes zero in the reported APA model). It is **robustly significant only at the bivariate level**
+(r = −0.48, p = .002); the attenuation reflects collinearity with the other North–South-patterned
+covariates (MPI VIF 5.3, Muslim 4.1). **No predictor is significant at p < .05 across all
+specifications.** Direction is consistent: conflict is higher in sparsely-populated, rural states —
+the periphery/"ungoverned space" pattern — but this should be reported as a trend, not a firm effect.
 
 ## The headline (and why it matters)
 > Static **structural** conditions explain Nigerian conflict intensity **poorly** (R² ≈ 0.25, zero
 > out-of-sample skill). The earlier **violence-history + spatial-spillover** model reached
 > **LOOCV R² = 0.78**. → Nigerian conflict is driven far more by its **own dynamics (persistence +
-> diffusion)** than by terrain, religion, resources or poverty. The one structural factor that
-> survives is **rurality (low population density)**.
+> diffusion)** than by terrain, religion, resources or poverty. The most consistent structural
+> correlate is **rurality (low population density)** — but only as a bivariate signal/trend, not a
+> coefficient that survives significance testing in the multivariable models.
 
 This directly adjudicates a core debate — *grievance/structural* vs *conflict-trap/diffusion*
 theories — in favour of the latter for Nigeria. That is a publishable argument.
