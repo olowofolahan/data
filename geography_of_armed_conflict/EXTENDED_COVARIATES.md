@@ -12,8 +12,8 @@ and what it shows. Data: `outputs/extended_covariates.csv` (merged analysis set:
 | **Terrain ruggedness** | ✅ full | **Computed from a DEM** (WorldClim 2.5′ elevation): standard deviation of elevation within each state |
 | **Dominant religion** | ⚠️ coded | 3-way category (Muslim / Christian / Mixed). **No official census of religion exists** — this is scholarly coding, approximate and contestable (esp. Kaduna, the Middle Belt, the Yoruba South-West coded "Mixed") |
 | **Political crisis** | ⚠️ proxy | **ACLED demonstrations** (riots + protests) events 2020–25, as a civil-unrest proxy. A true "political crisis" index (impeachments, states of emergency, election violence) needs manual coding |
-| **Number of police** | ❌ not obtained | Nigeria does not publish police **personnel by state** in clean open form. Proxy options: police-station *counts* (OpenStreetMap — host not yet allowlisted) or the Police Annual Report (manual) |
-| **Foreign interest** | ❌ not obtained | No clean state-level measure. Partial proxy = oil-producer (foreign oil majors). Better options need definition: FDI by state, expatriate-targeted incidents, number of foreign firms/consulates |
+| **Number of police** | ⚠️ weak proxy | **OSM police-station counts** (315 nationally, via HOT-OSM) — but OSM completeness varies by state, so this under-measures real presence and is **not reliable**. Personnel figures still need the NPF Annual Report (manual) |
+| **Foreign interest** | ⚠️ proxy | **International-border-state** dummy (cross-border exposure to Niger/Chad/Cameroon/Benin — arms/banditry corridors) + oil-producer. A direct FDI/foreign-firm measure still needs sourcing |
 
 ## New variables now in the dataset (all 37 states)
 `ruggedness` (elevation SD), `elev_mean`, `igr_2023_naira`, `igr_per_capita`, `oil_producer`,
@@ -51,11 +51,40 @@ accounted for (and some are collinear with the North–South divide — MPI VIF 
 This directly adjudicates a core debate — *grievance/structural* vs *conflict-trap/diffusion*
 theories — in favour of the latter for Nigeria. That is a publishable argument.
 
-## To complete the two missing variables
-1. **Police** — allow an OSM/Overpass host (or HDX facility dataset) → I'll compute police-station
-   counts and density per state; or supply the NPF Annual Report figures and I'll merge them.
-2. **Foreign interest** — pick a definition (FDI inflow by state, count of foreign-owned firms,
-   expatriate-targeted ACLED events, or oil-major concession area) and I'll build it.
+## Added (suggested) variables — climate, border, displacement, police
+Pulled on request, all 37 states unless noted:
+- **Rainfall (annual mm)** and **temperature (°C)** — zonal means from WorldClim 2.1. Sharp
+  gradient: 483 mm (Yobe) → 3,131 mm (Bayelsa).
+- **International-border-state** dummy (16 states) — cross-border/foreign-exposure proxy.
+- **Displacement (IDPs present)** — IOM DTM latest round, 2.38 M IDPs across 19 (conflict) states
+  (Borno 1.7 M). This is a **consequence** of conflict, used for validation, not as a predictor.
+- **Police stations** — OSM counts (315 total). ⚠️ unreliable (mapping-coverage bias).
 
-Sources: terrain © WorldClim 2.1 (geodata.ucdavis.edu); IGR © NBS 2023; ACLED © ACLED (demos);
-religion coding by analyst (no census); boundaries OCHA/HDX; population NBS/NPC.
+### Expanded determinants — what now correlates with conflict intensity
+| Covariate | r | p |
+|---|---|---|
+| Displacement (log IDPs) *[consequence]* | **+0.48** | **0.003** |
+| Population density (log) | **−0.48** | **0.002** |
+| **International border state** | **+0.37** | **0.026** |
+| Temperature (°C) | +0.32 | 0.050 |
+| Poverty (MPI) | +0.28 | 0.090 |
+| Economic (log IGR/cap) | −0.30 | 0.075 |
+| Rainfall (mm) | −0.22 | 0.197 |
+| Terrain ruggedness | +0.18 | 0.281 |
+| Muslim-majority | +0.20 | 0.245 |
+| Police per million (OSM) | −0.04 | 0.832 |
+
+**New structural signal:** conflict concentrates in **rural (low-density), international-border,
+hotter** states — the "ungoverned rural periphery / porous frontier" pattern. Border-state exposure
+is a meaningful, significant correlate (cross-border banditry/arms). Multivariate structural model
+R² = 0.28, **LOOCV R² ≈ 0** — so even with the richer set, **static structure still has no
+out-of-sample predictive skill**, reaffirming that conflict dynamics (history + diffusion, LOOCV
+R² = 0.78) dominate. Figure: `outputs/fig_determinants_expanded.png`.
+
+## Still open
+- **Police personnel** by state (NPF Annual Report — manual; OSM counts are too incomplete to trust).
+- **Direct foreign-interest** measure (FDI by state / foreign-firm counts) — border dummy is only a proxy.
+
+Sources: terrain, rainfall, temperature © WorldClim 2.1 (geodata.ucdavis.edu); IGR © NBS 2023;
+displacement © IOM DTM (via HDX); police © HOT-OSM; ACLED © ACLED (demos); religion coding by
+analyst (no census); boundaries OCHA/HDX; population NBS/NPC.
