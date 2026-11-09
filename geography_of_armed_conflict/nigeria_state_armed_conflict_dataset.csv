@@ -1,0 +1,38 @@
+state,zone,population,pv_events_2020_2025,pv_fatalities_2020_2025,pv_events_2014_2019,pv_fatalities_2014_2019,pv_fatalities_2025,ct_fatalities_2020_2025,demo_events_2020_2025,pv_fat_per100k_2020_2025,pv_events_per100k_2020_2025,lethality_2020_2025,civilian_targeting_share,trend_ratio,conflict_character
+Borno,North East,6651590,3447,17979,1859,22992,3864,2298,52,270.3,51.82,5.22,12.8,0.78,Battle/armed-clash dominant
+Zamfara,North West,5517793,2455,8579,224,2367,2747,2834,54,155.48,44.49,3.49,33.0,3.62,Battle/armed-clash dominant
+Katsina,North West,9300382,2337,5672,117,649,1862,2330,59,60.99,25.13,2.43,41.1,8.74,Battle/armed-clash dominant
+Niger,North Central,6720617,1369,5506,88,267,1526,1452,64,81.93,20.37,4.02,26.4,20.62,Battle/armed-clash dominant
+Kaduna,North West,8324285,1886,4891,297,2032,322,2570,145,58.76,22.66,2.59,52.5,2.41,Civilian-targeting dominant
+Benue,North Central,6687706,1049,3194,368,2343,879,2265,104,47.76,15.69,3.04,70.9,1.36,Civilian-targeting dominant
+Plateau,North Central,5400974,778,2525,297,1590,663,1971,121,46.75,14.4,3.25,78.1,1.59,Civilian-targeting dominant
+Sokoto,North West,6163187,1122,2514,57,206,914,1501,37,40.79,18.2,2.24,59.7,12.2,Civilian-targeting dominant
+Yobe,North East,4350401,370,1161,153,1330,252,302,28,26.69,8.5,3.14,26.0,0.87,Battle/armed-clash dominant
+Taraba,North East,4331885,464,1126,262,1453,146,637,44,25.99,10.71,2.43,56.6,0.77,Civilian-targeting dominant
+Anambra,South East,7299910,678,1004,91,212,160,442,230,13.75,9.29,1.48,44.0,4.74,Battle/armed-clash dominant
+Kebbi,North West,6001610,282,958,23,40,328,451,18,15.96,4.7,3.4,47.1,23.95,Civilian-targeting dominant
+Imo,South East,6067722,602,899,59,88,141,434,149,14.82,9.92,1.49,48.3,10.22,Civilian-targeting dominant
+Delta,South South,6107543,725,771,275,365,115,321,328,12.62,11.87,1.06,41.6,2.11,Battle/armed-clash dominant
+Kwara,North Central,4259613,479,640,39,39,489,275,98,15.02,11.25,1.34,43.0,16.41,Battle/armed-clash dominant
+Ebonyi,South East,4007155,293,563,65,144,60,345,55,14.05,7.31,1.92,61.3,3.91,Civilian-targeting dominant
+Rivers,South South,7234973,530,555,258,510,60,234,267,7.67,7.33,1.05,42.2,1.09,Battle/armed-clash dominant
+Adamawa,North East,5236948,291,532,325,3013,128,263,54,10.16,5.56,1.83,49.4,0.18,Civilian-targeting dominant
+Nasarawa,North Central,3632239,305,525,157,763,95,356,77,14.45,8.4,1.72,67.8,0.69,Civilian-targeting dominant
+Lagos,South West,15772884,636,525,227,249,103,214,504,3.33,4.03,0.83,40.8,2.11,Battle/armed-clash dominant
+Kogi,North Central,5053734,499,521,130,323,152,288,70,10.31,9.87,1.04,55.3,1.61,Civilian-targeting dominant
+Edo,South South,5527810,535,516,126,156,114,223,286,9.33,9.68,0.96,43.2,3.31,Battle/armed-clash dominant
+Enugu,South East,5396098,430,455,81,115,62,251,135,8.43,7.97,1.06,55.2,3.96,Civilian-targeting dominant
+FCT,North Central,4802443,603,395,104,270,61,209,713,8.22,12.56,0.66,52.9,1.46,Civilian-targeting dominant
+Abia,South East,4841943,282,385,60,329,94,184,137,7.95,5.82,1.37,47.8,1.17,Civilian-targeting dominant
+Ogun,South West,6445275,431,366,81,173,37,134,222,5.68,6.69,0.85,36.6,2.12,Battle/armed-clash dominant
+Cross River,South South,4175020,231,330,140,399,34,134,114,7.9,5.53,1.43,40.6,0.83,Battle/armed-clash dominant
+Bauchi,North East,7540663,196,308,57,236,61,121,61,4.08,2.6,1.57,39.3,1.31,Battle/armed-clash dominant
+Oyo,South West,7512855,327,295,73,33,20,158,246,3.93,4.35,0.9,53.6,8.94,Civilian-targeting dominant
+Ondo,South West,5469707,332,256,86,57,64,168,212,4.68,6.07,0.77,65.6,4.49,Civilian-targeting dominant
+Akwa Ibom,South South,5780581,212,252,95,244,16,70,87,4.36,3.67,1.19,27.8,1.03,Battle/armed-clash dominant
+Osun,South West,4237396,315,232,59,73,33,107,216,5.48,7.43,0.74,46.1,3.18,Civilian-targeting dominant
+Bayelsa,South South,2394725,187,191,144,172,27,93,115,7.98,7.81,1.02,48.7,1.11,Civilian-targeting dominant
+Kano,North West,16253549,168,175,61,389,90,103,118,1.08,1.03,1.04,58.9,0.45,Low-intensity
+Jigawa,North West,6979080,98,98,29,31,34,35,29,1.4,1.4,1.0,35.7,3.16,Low-intensity
+Ekiti,South West,3398177,135,66,61,42,2,33,72,1.94,3.97,0.49,50.0,1.57,Low-intensity
+Gombe,North East,4623462,64,65,52,427,16,32,26,1.41,1.38,1.02,49.2,0.15,Low-intensity
