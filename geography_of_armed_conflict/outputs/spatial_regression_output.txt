@@ -1,0 +1,196 @@
+################################################################## 
+# OLS with spatial diagnostics
+ ##################################################################
+REGRESSION RESULTS
+------------------
+
+SUMMARY OF OUTPUT: ORDINARY LEAST SQUARES
+------------------------------------------------------------------------------------
+Data set            :     unknown
+Weights matrix      :     unknown
+Dependent Variable  :log_conflict_rate                Number of Observations:          37
+Mean dependent var  :      2.4614                Number of Variables   :           6
+S.D. dependent var  :      1.2736                Degrees of Freedom    :          31
+R-squared           :      0.3146
+Adjusted R-squared  :      0.2041
+Sum squared residual:     40.0239                F-statistic           :      2.8462
+Sigma-square        :       1.291                Prob(F-statistic)     :     0.03151
+S.E. of regression  :       1.136                Log likelihood        :     -53.954
+Sigma-square ML     :       1.082                Akaike info criterion :     119.908
+S.E of regression ML:      1.0401                Schwarz criterion     :     129.574
+
+------------------------------------------------------------------------------------
+            Variable     Coefficient       Std.Error     t-Statistic     Probability
+------------------------------------------------------------------------------------
+            CONSTANT        -6.52519         9.46696        -0.68926         0.49579
+         log_density        -0.48265         0.28369        -1.70131         0.09890
+        border_state         0.21661         0.47113         0.45976         0.64890
+              temp_c         0.45311         0.32624         1.38888         0.17477
+          ruggedness         0.00177         0.00265         0.67006         0.50778
+          log_igr_pc        -0.05909         0.27001        -0.21885         0.82820
+------------------------------------------------------------------------------------
+
+REGRESSION DIAGNOSTICS
+MULTICOLLINEARITY CONDITION NUMBER         153.314
+
+TEST ON NORMALITY OF ERRORS
+TEST                             DF        VALUE           PROB
+Jarque-Bera                       2          0.022           0.9889
+
+DIAGNOSTICS FOR HETEROSKEDASTICITY
+RANDOM COEFFICIENTS
+TEST                             DF        VALUE           PROB
+Breusch-Pagan test                5          8.189           0.1461
+Koenker-Bassett test              5          8.225           0.1442
+
+DIAGNOSTICS FOR SPATIAL DEPENDENCE
+- SARERR -
+TEST                           MI/DF       VALUE           PROB
+Moran's I (error)              0.0875        1.662           0.0966
+Lagrange Multiplier (lag)         1          0.204           0.6513
+Robust LM (lag)                   1          0.412           0.5211
+Lagrange Multiplier (error)       1          0.595           0.4405
+Robust LM (error)                 1          0.802           0.3704
+Lagrange Multiplier (SARMA)       2          1.007           0.6045
+
+- Spatial Durbin -
+TEST                              DF       VALUE           PROB
+LM test for WX                    5          3.728           0.5891
+Robust LM WX test                 5          4.119           0.5324
+Lagrange Multiplier (lag)         1          0.204           0.6513
+Robust LM Lag - SDM               1          0.595           0.4405
+Joint test for SDM                6          4.323           0.6330
+================================ END OF REPORT =====================================
+ML_Lag
+
+################################################################## 
+# SPATIAL LAG (SAR): y = rho W y + Xb + e  [ML]
+ ##################################################################
+REGRESSION RESULTS
+------------------
+
+SUMMARY OF OUTPUT: MAXIMUM LIKELIHOOD SPATIAL LAG (METHOD = FULL)
+------------------------------------------------------------------------------------
+Data set            :     unknown
+Weights matrix      :     unknown
+Dependent Variable  :log_conflict_rate                Number of Observations:          37
+Mean dependent var  :      2.4614                Number of Variables   :           7
+S.D. dependent var  :      1.2736                Degrees of Freedom    :          30
+Pseudo R-squared    :      0.3213
+Spatial Pseudo R-squared:  0.3079
+Log likelihood      :    -53.8305
+Sigma-square ML     :      1.0712                Akaike info criterion :     121.661
+S.E of regression   :      1.0350                Schwarz criterion     :     132.937
+
+------------------------------------------------------------------------------------
+            Variable     Coefficient       Std.Error     z-Statistic     Probability
+------------------------------------------------------------------------------------
+            CONSTANT        -5.51885         8.63685        -0.63899         0.52283
+         log_density        -0.47033         0.25972        -1.81089         0.07016
+        border_state         0.25415         0.42996         0.59110         0.55445
+              temp_c         0.39639         0.30129         1.31565         0.18829
+          ruggedness         0.00152         0.00244         0.62292         0.53334
+          log_igr_pc        -0.04322         0.24712        -0.17488         0.86118
+ W_log_conflict_rate         0.11828         0.20913         0.56557         0.57168
+------------------------------------------------------------------------------------
+
+SPATIAL LAG MODEL IMPACTS
+Impacts computed using the 'simple' method.
+            Variable         Direct        Indirect          Total
+         log_density        -0.4703         -0.0631         -0.5334
+        border_state         0.2541          0.0341          0.2882
+              temp_c         0.3964          0.0532          0.4496
+          ruggedness         0.0015          0.0002          0.0017
+          log_igr_pc        -0.0432         -0.0058         -0.0490
+================================ END OF REPORT =====================================
+ML_Error
+
+################################################################## 
+# SPATIAL ERROR (SEM): y = Xb + u, u = lam W u + e  [ML]
+ ##################################################################
+REGRESSION RESULTS
+------------------
+
+SUMMARY OF OUTPUT: ML SPATIAL ERROR (METHOD = full)
+------------------------------------------------------------------------------------
+Data set            :     unknown
+Weights matrix      :     unknown
+Dependent Variable  :log_conflict_rate                Number of Observations:          37
+Mean dependent var  :      2.4614                Number of Variables   :           6
+S.D. dependent var  :      1.2736                Degrees of Freedom    :          31
+Pseudo R-squared    :      0.3100
+Log likelihood      :    -53.5128
+Sigma-square ML     :      1.0399                Akaike info criterion :     119.026
+S.E of regression   :      1.0198                Schwarz criterion     :     128.691
+
+------------------------------------------------------------------------------------
+            Variable     Coefficient       Std.Error     z-Statistic     Probability
+------------------------------------------------------------------------------------
+            CONSTANT        -3.56384         8.94441        -0.39844         0.69030
+         log_density        -0.49648         0.26270        -1.88992         0.05877
+        border_state         0.41323         0.44981         0.91868         0.35826
+              temp_c         0.34063         0.31105         1.09511         0.27347
+          ruggedness         0.00155         0.00248         0.62619         0.53119
+          log_igr_pc        -0.05612         0.25669        -0.21864         0.82693
+              lambda         0.25868         0.21158         1.22259         0.22148
+------------------------------------------------------------------------------------
+================================ END OF REPORT =====================================
+ML_Lag
+
+################################################################## 
+# SPATIAL DURBIN (SDM): y = rho W y + Xb + WX theta + e
+ ##################################################################
+REGRESSION RESULTS
+------------------
+
+SUMMARY OF OUTPUT: MAXIMUM LIKELIHOOD SPATIAL LAG WITH SLX - SPATIAL DURBIN MODEL (METHOD = FULL)
+------------------------------------------------------------------------------------
+Data set            :     unknown
+Weights matrix      :     unknown
+Dependent Variable  :log_conflict_rate                Number of Observations:          37
+Mean dependent var  :      2.4614                Number of Variables   :          12
+S.D. dependent var  :      1.2736                Degrees of Freedom    :          25
+Pseudo R-squared    :      0.3901
+Spatial Pseudo R-squared:  0.3864
+Log likelihood      :    -51.8690
+Sigma-square ML     :      0.9627                Akaike info criterion :     127.738
+S.E of regression   :      0.9812                Schwarz criterion     :     147.069
+
+------------------------------------------------------------------------------------
+            Variable     Coefficient       Std.Error     z-Statistic     Probability
+------------------------------------------------------------------------------------
+            CONSTANT       -26.43046        18.52443        -1.42679         0.15364
+         log_density        -0.41031         0.29704        -1.38133         0.16718
+        border_state         0.67222         0.52644         1.27692         0.20163
+              temp_c         0.25966         0.35371         0.73411         0.46288
+          ruggedness         0.00098         0.00284         0.34527         0.72989
+          log_igr_pc        -0.11071         0.26454        -0.41849         0.67559
+       W_log_density        -0.04551         0.66003        -0.06895         0.94503
+      W_border_state        -1.57789         1.13239        -1.39341         0.16349
+            W_temp_c         0.88980         0.74409         1.19582         0.23177
+        W_ruggedness         0.00247         0.00661         0.37292         0.70921
+        W_log_igr_pc         0.19747         0.46805         0.42191         0.67309
+ W_log_conflict_rate         0.13154         0.22412         0.58693         0.55725
+------------------------------------------------------------------------------------
+
+DIAGNOSTICS FOR SPATIAL DEPENDENCE
+TEST                              DF         VALUE           PROB
+Common Factor Hypothesis Test     5          3.461           0.6293
+
+SPATIAL DURBIN MODEL IMPACTS
+Impacts computed using the 'simple' method.
+            Variable         Direct        Indirect          Total
+         log_density        -0.4103         -0.1145         -0.5249
+        border_state         0.6722         -1.7151         -1.0428
+              temp_c         0.2597          1.0639          1.3236
+          ruggedness         0.0010          0.0030          0.0040
+          log_igr_pc        -0.1107          0.2106          0.0999
+================================ END OF REPORT =====================================
+
+ ============================================================ 
+MODEL COMPARISON (lower AIC = better)
+ML_Lag
+ML_Error
+  OLS       AIC=  119.91  (no spatial term)
+  SAR lag   AIC=  121.66  rho=+0.118
+  SEM error AIC=  119.03  lambda=+0.259
