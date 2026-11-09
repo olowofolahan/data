@@ -1,0 +1,137 @@
+import json
+from docx import Document
+from docx.shared import Pt, Inches, RGBColor
+from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_LINE_SPACING
+from docx.enum.table import WD_TABLE_ALIGNMENT
+from docx.oxml.ns import qn
+from docx.oxml import OxmlElement
+from PIL import Image as PImage
+SC='/tmp/claude-0/-home-user-data/9733eecb-671a-58d6-bbe9-c7d4a40590cd/scratchpad'
+F26=json.load(open(f'{SC}/forecast26_results.json')); P27=json.load(open(f'{SC}/proj27_results.json')); S27=json.load(open(f'{SC}/scenario27_results.json'))
+OUT='/home/user/data/geography_of_armed_conflict/Forecasting_Method_Results_APA7.docx'
+OUTD='/home/user/data/geography_of_armed_conflict/outputs'
+doc=Document(); s=doc.styles['Normal']; s.font.name='Times New Roman'; s.font.size=Pt(12)
+s.paragraph_format.line_spacing_rule=WD_LINE_SPACING.DOUBLE; s.paragraph_format.space_after=Pt(0)
+NAVY=RGBColor(0x1F,0x2A,0x44)
+def H(t,size=12,bold=True,italic=False,align='left',before=8,after=4):
+    p=doc.add_paragraph(); p.paragraph_format.space_before=Pt(before); p.paragraph_format.space_after=Pt(after)
+    p.alignment={'left':WD_ALIGN_PARAGRAPH.LEFT,'center':WD_ALIGN_PARAGRAPH.CENTER}[align]
+    r=p.add_run(t); r.bold=bold; r.italic=italic; r.font.size=Pt(size)
+    if bold: r.font.color.rgb=NAVY
+    return p
+def body(t):
+    p=doc.add_paragraph(); p.paragraph_format.first_line_indent=Inches(0.5); p.add_run(t); return p
+def setc(c,t,italic=False,align='left',size=10.5):
+    c.text=''; pr=c.paragraphs[0]; pr.alignment={'left':WD_ALIGN_PARAGRAPH.LEFT,'center':WD_ALIGN_PARAGRAPH.CENTER}[align]
+    pr.paragraph_format.line_spacing_rule=WD_LINE_SPACING.SINGLE; pr.paragraph_format.space_after=Pt(1); pr.paragraph_format.space_before=Pt(1)
+    r=pr.add_run(t); r.italic=italic; r.font.size=Pt(size); r.font.name='Times New Roman'
+def bdr(cell,edges):
+    tcPr=cell._tc.get_or_add_tcPr(); tb=OxmlElement('w:tcBorders')
+    for e in ['top','bottom']:
+        el=OxmlElement('w:'+e)
+        if e in edges: el.set(qn('w:val'),'single'); el.set(qn('w:sz'),'6'); el.set(qn('w:color'),'000000')
+        else: el.set(qn('w:val'),'nil')
+        tb.append(el)
+    tcPr.append(tb)
+def table(num,title,headers,rows,note=None,colw=None,fs=10):
+    H(f"Table {num}",before=8,after=0); H(title,bold=False,italic=True,after=4)
+    t=doc.add_table(rows=1+len(rows),cols=len(headers)); t.alignment=WD_TABLE_ALIGNMENT.LEFT
+    for j,h in enumerate(headers): setc(t.rows[0].cells[j],h,italic=True,align='center' if j else 'left',size=fs)
+    for i,row in enumerate(rows,1):
+        for j,v in enumerate(row): setc(t.rows[i].cells[j],str(v),align='center' if j else 'left',size=fs)
+    for j in range(len(headers)): bdr(t.rows[0].cells[j],['top','bottom']); bdr(t.rows[-1].cells[j],['bottom'])
+    if colw:
+        for j,w in enumerate(colw):
+            for rr in t.rows: rr.cells[j].width=Inches(w)
+    if note:
+        p=doc.add_paragraph(); p.paragraph_format.space_before=Pt(2)
+        a=p.add_run("Note. "); a.italic=True; a.font.size=Pt(10); a.font.name='Times New Roman'
+        b=p.add_run(note); b.font.size=Pt(10); b.font.name='Times New Roman'
+    doc.add_paragraph()
+def figure(num,title,path,note=None,width=5.9):
+    H(f"Figure {num}",before=8,after=0); H(title,bold=False,italic=True,after=4)
+    doc.add_picture(path,width=Inches(width)); doc.paragraphs[-1].alignment=WD_ALIGN_PARAGRAPH.CENTER
+    if note:
+        p=doc.add_paragraph(); p.paragraph_format.space_before=Pt(2)
+        a=p.add_run("Note. "); a.italic=True; a.font.size=Pt(10); a.font.name='Times New Roman'
+        b=p.add_run(note); b.font.size=Pt(10); b.font.name='Times New Roman'
+    doc.add_paragraph()
+def cm(x): return f"{int(x):,}"
+
+# ===== TITLE =====
+H("Forecasting and Projection",size=14,align='center',before=0,after=4)
+p=doc.add_paragraph(); p.alignment=WD_ALIGN_PARAGRAPH.CENTER
+r=p.add_run("A continuation of the Method and Results, extending the predictive model to 2026 and 2027"); r.italic=True
+
+# ===== METHOD =====
+H("Method",size=13)
+H("Forecasting Approach",italic=True)
+body("Having established that conflict is driven by persistence and spatial diffusion, we generated "
+ "genuine forecasts. A pooled one-step-ahead model was estimated on all state-year transitions "
+ f"2015–2025, regressing log(1 + fatalities)ₜ on the state's own prior-year level and the "
+ f"row-standardised spatial lag of neighbours' prior-year level (own-lag β = {F26['beta'][1]:.2f}, "
+ f"spillover β = {F26['beta'][2]:.2f}; in-sample R² = {F26['R2']:.2f}). Full-year 2026 was forecast "
+ "from 2025 values, with point estimates from Duan's smearing estimator (correcting log-retransformation "
+ "bias) and 80%/95% prediction intervals from empirical residual quantiles. Because the ACLED series "
+ "extended through October 2026, the 2026 forecast was validated against the 10 months of observed data, "
+ "annualised (× 12/10). The 2027 projection was multi-step and therefore generated by Monte-Carlo "
+ "recursive simulation (5,000 draws): the 2026 state vector was anchored on the annualised observed data "
+ "with added uncertainty for the unobserved months, the model was applied one step, and a residual was "
+ "resampled per draw, compounding input and process uncertainty.")
+H("Election-Year Scenario Analysis",italic=True)
+er=S27['elec_ratios']
+body("Nigeria's general elections fall in early 2027, a plausible driver the autoregressive model cannot "
+ "encode. We therefore first tested whether past election years elevated national violence. Comparing "
+ f"each election year with the year before yielded ratios of {er['2015']:.2f} (2015), {er['2019']:.2f} "
+ f"(2019), and {er['2023']:.2f} (2023)—mean {S27['elec_mean_ratio']:.2f}—indicating no aggregate "
+ "election-year uplift, because insurgency and banditry dominate national totals and electoral violence "
+ "is comparatively localised. Accordingly, election effects were represented not as an estimated "
+ "coefficient but as illustrative multiplicative sensitivity scenarios (+20% moderate, +40% severe) "
+ "applied to the 2027 baseline distribution.")
+
+# ===== RESULTS =====
+H("Results",size=13)
+H("Forecast for 2026 and Out-of-Sample Validation",italic=True)
+body(f"The model forecast a 2026 national total of approximately {cm(F26['nat_forecast'])} fatalities, "
+ f"essentially unchanged from 2025 (15,771). This was corroborated by the observed data: the first ten "
+ f"months recorded a total that annualised to approximately {cm(F26['nat_ann_sofar'])}. At the state "
+ f"level the forecast tracked the realised data closely, Pearson r = {F26['val_pearson'][0]:.2f} "
+ f"(log scale), Spearman ρ = {F26['val_spearman']:.2f}, with {int(F26['cov80']*100)}% of states' "
+ "annualised actuals falling within the 80% prediction interval (Table 4). The North-West and "
+ "North-Central states remained the forecast epicentre.")
+table(4,"Forecast of 2026 Conflict Fatalities for the 10 Highest States, With Validation",
+ ["State","2025","Forecast 2026","80% PI","Actual (ann.)"],
+ [[r[0],cm(r[1]),cm(r[2]),f"[{cm(r[3])}, {cm(r[4])}]",cm(r[5])] for r in F26['top']],
+ note=f"Actual (ann.) = Jan–Oct 2026 annualised (×12/10). Validation across all 37 states: Pearson r = {F26['val_pearson'][0]:.2f}, Spearman ρ = {F26['val_spearman']:.2f}.",
+ colw=[1.6,0.9,1.3,1.6,1.1],fs=9.5)
+
+H("Projection for 2027 and Election Scenarios",italic=True)
+body(f"The 2027 baseline projection placed national fatalities at a median of {cm(P27['nat_med'])} and a "
+ f"mean of {cm(P27['nat_mean'])} (80% interval [{cm(P27['nat_lo80'])}, {cm(P27['nat_hi80'])}]); the mean "
+ "is the more appropriate central estimate given the right-skewed distribution. The projected medians "
+ "for individual high-conflict states fall below their 2026 pace—a statistical mean-reversion "
+ "artefact of autoregression with persistence below unity, not a substantive prediction of de-escalation; "
+ "the upper interval is the realistic read for currently escalating states such as Borno. Under the "
+ "illustrative election scenarios, the national mean rose to approximately "
+ f"{cm(S27['scenarios'][1][2])} (+20%) and {cm(S27['scenarios'][2][2])} (+40%) (Table 5). Figures 2 and 3 "
+ "display the baseline fan and the scenario branches.")
+table(5,"National Conflict Projections for 2027 Under Baseline and Election-Year Scenarios",
+ ["Scenario","Median","Mean","80% PI"],
+ [[r[0],cm(r[1]),cm(r[2]),f"[{cm(r[3])}, {cm(r[4])}]"] for r in S27['scenarios']],
+ note="Election uplifts are assumed sensitivity values, not estimated effects; the historical national election-year record shows no uplift (mean ratio 0.92).",
+ colw=[3.0,1.1,1.1,1.6],fs=9.5)
+figure(2,"National Armed-Conflict Fatalities: Actuals and 2027 Baseline Projection (Fan)",
+ f'{OUTD}/fig_national_fan_2027.png',
+ note="Solid navy = observed (2023–2025) and annualised Jan–Oct 2026; dashed red = baseline median projection; shaded bands = 80% and 95% prediction intervals.",width=5.6)
+figure(3,"2027 National Projection Under Baseline Versus Illustrative Election-Year Scenarios",
+ f'{OUTD}/fig_election_scenarios_2027.png',
+ note="Scenario uplifts (+20%, +40%) are assumed, not estimated; shaded bands = 80% intervals.",width=5.8)
+
+H("Caveats",italic=True)
+body("Forecast skill degrades sharply with horizon. The 2026 forecast is validated (r = .90) and can be "
+ "reported as a forecast; the 2027 figures are a conditional baseline (“if current dynamics "
+ "persist”) with wide, compounding uncertainty and no possible validation, and are best presented as "
+ "a scenario. Both are autoregressive and cannot anticipate structural breaks—new armed actors, major "
+ "security operations, or election-related shocks—which is precisely where the 2025 forecast residuals "
+ "(e.g., Kwara) located genuine surprises. The 2026 ACLED data are preliminary and subject to revision.")
+doc.save(OUT); print("WROTE",OUT)

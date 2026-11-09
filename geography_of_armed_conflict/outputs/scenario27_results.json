@@ -1,0 +1,31 @@
+{
+ "elec_ratios": {
+  "2015": 0.98,
+  "2019": 0.97,
+  "2023": 0.8
+ },
+ "elec_mean_ratio": 0.92,
+ "scenarios": [
+  [
+   "Baseline (no election effect)",
+   13462,
+   15451,
+   9383,
+   22259
+  ],
+  [
+   "Moderate election uplift (+20%)",
+   16154,
+   18541,
+   11260,
+   26711
+  ],
+  [
+   "Severe election uplift (+40%)",
+   18847,
+   21632,
+   13136,
+   31163
+  ]
+ ]
+}
