@@ -1,0 +1,23 @@
+# Core scientific stack
+numpy
+pandas
+scipy
+matplotlib
+pyyaml
+requests
+
+# Geospatial (zonal statistics over state boundaries)
+geopandas
+shapely
+rasterio
+rioxarray
+xarray
+
+# Statistics / ML
+statsmodels          # SARIMAX, time-series
+scikit-learn
+xgboost
+
+# Mechanistic model fitting
+# (scipy.integrate for ODEs; emcee optional for Bayesian calibration)
+emcee

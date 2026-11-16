@@ -1,0 +1,16 @@
+# Large / reproducible raw downloads (regenerate via src/fetch_*.py)
+data/raw/climate/*.zip
+data/raw/climate/*.tif
+data/raw/climate/*.tif.gz
+data/raw/map/*.json
+
+# Python
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.venv/
+venv/
+
+# Outputs (regenerable)
+outputs/*.png
+outputs/*.pdf

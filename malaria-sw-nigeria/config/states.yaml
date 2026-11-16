@@ -1,0 +1,61 @@
+# Study configuration: Malaria modelling in South-West Nigeria
+# Focal unit: the six South-West geopolitical zone states.
+
+project:
+  name: malaria-sw-nigeria
+  country: Nigeria
+  country_iso3: NGA
+  admin_level: 1          # state level (GADM NAME_1)
+
+states:                   # GADM NAME_1 spellings (verified against gadm41_NGA_1)
+  - Lagos
+  - Oyo
+  - Ogun
+  - Osun
+  - Ondo
+  - Ekiti
+
+period:
+  # Annual MAP/WHO products span 2000-2022/2024.
+  # Monthly case + climate pipeline target:
+  start: 2000-01
+  end: 2024-12
+  timestep: monthly       # mechanistic model runs monthly; validated at annual where only annual data exists
+
+data_sources:
+  who_gho:
+    host: ghoapi.azureedge.net
+    resolution: national / annual
+    use: context, national incidence/mortality trend
+  malaria_atlas_surveys:
+    layer: "Malaria:202406_Global_Pf_Parasite_Rate_Surveys"
+    resolution: point / survey
+    use: "validation (sparse in SW: ~32 points)"
+  malaria_atlas_raster:
+    product: Global Pf Parasite Rate (PfPR 2-10), modelled
+    resolution: ~5km raster / annual
+    use: state-level prevalence via zonal mean -> mechanistic calibration target
+  chirps:
+    host: data.chc.ucsb.edu
+    variable: precipitation
+    resolution: ~5km raster / monthly
+    use: mechanistic forcing + ML covariate
+  chirts:
+    host: data.chc.ucsb.edu
+    variable: temperature (Tmax/Tmin)
+    resolution: ~5km raster / monthly
+    use: mechanistic forcing (thermal response) + ML covariate
+  dhis2_nmep:
+    host: RESTRICTED (login-gated; see docs/DATA_ACCESS.md)
+    resolution: facility/LGA/state / monthly
+    use: PRIMARY forecasting target (monthly confirmed cases) -- requires data request
+
+models:
+  mechanistic:
+    type: climate-forced SEIR (human) coupled to SEI (mosquito), Ross-Macdonald family
+    forcing: monthly CHIRPS rainfall + CHIRTS temperature (per state)
+    calibration: MAP annual state PfPR; monthly cases when available
+  ml:
+    baseline: SARIMAX (climate exogenous regressors)
+    advanced: gradient boosting (XGBoost) / LSTM on lagged climate features
+    validation: rolling-origin cross-validation

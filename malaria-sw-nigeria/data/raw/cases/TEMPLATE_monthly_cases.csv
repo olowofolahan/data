@@ -1,0 +1,6 @@
+state,year,month,confirmed_cases,suspected_cases,tested,population,source
+Oyo,2019,1,,,,,DHIS2-NMEP
+Oyo,2019,2,,,,,DHIS2-NMEP
+Lagos,2019,1,,,,,DHIS2-NMEP
+# Replace with your DHIS2/NMEP export. One row per state-month.
+# state must match config/states.yaml spelling. confirmed_cases is the target.
