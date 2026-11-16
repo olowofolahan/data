@@ -14,3 +14,6 @@ venv/
 # Outputs (regenerable)
 outputs/*.png
 outputs/*.pdf
+
+# Logs
+outputs/*.log
