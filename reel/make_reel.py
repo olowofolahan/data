@@ -75,14 +75,15 @@ shot("snap", 5, [(0, cam("snap", 830, 560, 420), FULL), (1, cam("snap", 830, 520
 title("p1", r(80, 0, 960, 125))
 panel("p1", r(8, 128, 1016, 540), 5)
 panel("p1", r(8, 548, 1016, 955), 5, sfx="swoosh")
-for rr in [r(8, 965, 508, 1248), r(514, 965, 1016, 1248), r(8, 1252, 508, 1532), r(514, 1252, 1016, 1532)]:
-    panel("p1", rr, 1.5, sfx="tick")
 # --- Character cards: tight on the face, pull back to the full card with nameplate
 faces = dict(peter=(500, 190), colin=(495, 190), ron=(470, 170), eion=(480, 170), akogun=(470, 220))
 for k in ["peter", "colin", "ron", "eion", "akogun"]:
     fx, fy = faces[k]
     shot(k, 4, [(0, cam(k, fx, 320, 360), FULL), (0.35, cam(k, fx, 340, 384), FULL),
                 (1, full(k), SAFE)], sfx="impact", flash=(k == "peter"))
+# --- the emails land in each city
+for rr in [r(8, 965, 508, 1248), r(514, 965, 1016, 1248), r(8, 1252, 508, 1532), r(514, 1252, 1016, 1532)]:
+    panel("p1", rr, 1.5, sfx="tick")
 # --- Page 2: The Journey to Canmore
 title("p2", r(150, 0, 870, 82))
 panel("p2", r(8, 88, 1016, 400), 5)
